@@ -1,0 +1,49 @@
+.round-nav-strip {
+  display: flex; 
+  gap: 10px; 
+  overflow-x: auto; 
+  padding: 10px;
+  justify-content: center;
+  align-items: center; /* Alinea el divisor con los botones */
+  scrollbar-width: none; 
+}
+
+/* ➡️ ESTILO DEL DIVISOR DE CAMBIO DE LADO */
+.round-divider {
+  width: 2px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 10px; /* Espacio extra a los lados de la línea */
+  border-radius: 2px;
+}
+
+.round-btn {
+  background: rgba(30, 33, 36, 0.8);
+  border: 1px solid #3a3d42; 
+  color: #888;
+  width: 32px; 
+  height: 32px; 
+  border-radius: 4px; 
+  font-size: 13px; 
+  cursor: pointer;
+  transition: all 0.2s ease; 
+  font-weight: bold;
+}
+
+/* Colores de ganadores y activos (manteniendo tu lógica anterior) */
+.round-btn.T { border-bottom: 3px solid var(--TColor) !important; color: var(--TColor); }
+.round-btn.CT { border-bottom: 3px solid var(--CTColor) !important; color: var(--CTColor); }
+
+.round-btn.T.active {
+  background-color: var(--TColor) !important;
+  color: #000 !important;
+  border-color: var(--TColor) !important;
+  transform: scale(1.1);
+}
+
+.round-btn.CT.active {
+  background-color: var(--CTColor) !important;
+  color: #fff !important;
+  border-color: var(--CTColor) !important;
+  transform: scale(1.1);
+}

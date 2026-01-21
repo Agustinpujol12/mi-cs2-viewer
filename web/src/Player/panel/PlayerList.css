@@ -1,0 +1,73 @@
+/* PlayerList.css - Distribución HUD Lateral */
+
+.player-list-container {
+  display: flex;
+  justify-content: space-between; /* Empuja izq y der a los extremos */
+  align-items: flex-start; /* Alinea al inicio (arriba) */
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Deja pasar clics en el hueco central */
+}
+
+/* COLUMNAS DE EQUIPO */
+.team-column {
+  width: 300px; /* Ancho fijo para las tarjetas de jugadores */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: auto; /* Habilita clics en los jugadores */
+}
+
+/* Alineación específica */
+.team-left {
+  align-items: flex-start; /* Pega el contenido a la izquierda */
+}
+
+.team-right {
+  align-items: flex-end; /* Pega el contenido a la derecha */
+}
+
+/* Contenedor de las tarjetas */
+.team-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 5px; /* Espacio entre cada jugador */
+  width: 100%;
+}
+
+/* Títulos de Equipo (Opcional) */
+.team-header {
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  padding: 0 5px;
+}
+
+/* Asegura que las tarjetas ocupen el ancho disponible de la columna */
+.team-cards > * {
+  width: 100%;
+}
+
+/* PlayerList.css - Corrección de ancho y estilo */
+
+/* El contenedor de las tarjetas */
+.team-list-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px; /* Espacio entre jugadores */
+  width: 100%; /* Ocupa el 100% de la columna hud-column (300px), no de la pantalla */
+}
+
+/* Alineación específica para el lado T (Izquierda) */
+.team-list-cards.T {
+  align-items: flex-start;
+}
+
+/* Alineación específica para el lado CT (Derecha) */
+.team-list-cards.CT {
+  align-items: flex-end;
+}
+

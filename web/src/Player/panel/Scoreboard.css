@@ -1,0 +1,60 @@
+.scoreboard-container {
+  margin: 20px 0;
+  padding: 20px 0;
+}
+
+.scoreboard-scores {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 15px;
+}
+
+.score-display {
+  text-align: center;
+  flex: 1;
+}
+
+.score-number {
+  font-size: 3rem;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.05em;
+}
+
+.score-number.T {
+  background: linear-gradient(135deg, var(--TColor) 0%, #9f822f 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.score-number.CT {
+  background: linear-gradient(135deg, var(--CTColor) 0%, #3a7fb8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.scoreboard-teams {
+  display: flex;
+  justify-content: space-around;
+}
+
+.team-name {
+  text-align: center;
+  flex: 1;
+  font-size: 1.3rem;
+  font-weight: 500;
+  margin: 0;
+  opacity: 0.9;
+  letter-spacing: 0.03em;
+}
+
+.team-header-container { display: flex; align-items: center; gap: 15px; margin-bottom: 10px; font-family: 'Segoe UI', sans-serif; text-shadow: 0 2px 5px rgba(0,0,0,0.8); }
+.team-header-container.left { justify-content: flex-start; text-align: left; }
+.team-header-container.right { justify-content: flex-end; text-align: right; }
+.team-name { font-size: 1.4rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: white; }
+.team-score-box { font-size: 2.2rem; font-weight: 900; color: white; line-height: 1; }
+.t-text { color: #e6b022; }
+.ct-text { color: #5dade2; }

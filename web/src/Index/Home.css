@@ -1,0 +1,177 @@
+/* Home.css - Diseño Dashboard Pro CS2 */
+
+/* Reiniciamos estilos básicos para garantizar el modo oscuro */
+:root {
+  --bg-dark: #121212;
+  --bg-panel: #1e1e1e;
+  --bg-hover: #252525;
+  --text-main: #e0e0e0;
+  --text-dim: #888888;
+  --accent: #ff4757;
+  --border: #333333;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Contenedor Principal */
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+/* --- BARRA DE CONTROL SUPERIOR --- */
+.control-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  background-color: var(--bg-panel);
+  padding: 15px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.filter-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Botones de Filtro (Mapas) */
+.filter-btn {
+  background: #2c2c2c;
+  border: 1px solid #444;
+  color: var(--text-dim);
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background: #3a3a3a;
+  color: #fff;
+}
+
+.filter-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+/* Botón Borrar Caché */
+.btn-cache {
+  background: transparent;
+  border: 1px solid #444;
+  color: #666;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+.btn-cache:hover {
+  border-color: #d63031;
+  color: #d63031;
+}
+
+/* --- TABLA DE PARTIDOS --- */
+.matches-table {
+  display: flex;
+  flex-direction: column;
+  gap: 2px; /* Separación mínima entre filas */
+}
+
+/* Encabezados de la tabla */
+.table-header {
+  display: grid;
+  grid-template-columns: 120px 100px 1fr 100px; /* Anchos de columnas */
+  padding: 10px 20px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #555;
+  letter-spacing: 1px;
+}
+
+/* Fila de Partido (La Tarjeta Compacta) */
+.match-row {
+  display: grid;
+  grid-template-columns: 120px 100px 1fr 100px;
+  align-items: center;
+  background: var(--bg-panel);
+  padding: 12px 20px;
+  border-left: 4px solid transparent; /* El color se pone dinámicamente */
+  transition: transform 0.1s, background 0.2s;
+}
+
+.match-row:hover {
+  background: var(--bg-hover);
+  transform: translateX(4px);
+}
+
+/* Estilos de las celdas */
+.cell-date {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.cell-map {
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.cell-title {
+  color: #eee;
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+/* Botón Play Pequeño */
+.btn-play {
+  background: #333;
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: bold;
+  padding: 6px 0;
+  border-radius: 3px;
+  text-align: center;
+  display: block;
+  transition: all 0.2s;
+}
+
+.btn-play:hover {
+  background: var(--accent);
+}
+
+/* Colores de Mapas (Borde Izquierdo y Texto) */
+.map-mirage { color: #e1b12c; border-left-color: #e1b12c !important; }
+.map-nuke { color: #0984e3; border-left-color: #0984e3 !important; }
+.map-inferno { color: #d63031; border-left-color: #d63031 !important; }
+.map-ancient { color: #00b894; border-left-color: #00b894 !important; }
+.map-anubis { color: #e58e26; border-left-color: #e58e26 !important; }
+.map-overpass { color: #6c5ce7; border-left-color: #6c5ce7 !important; }
+.map-dust2 { color: #fdcb6e; border-left-color: #fdcb6e !important; }
+.map-vertigo { color: #fab1a0; border-left-color: #fab1a0 !important; }
+.map-train { color: #2ecc71; border-left-color: #2ecc71 !important; }
+
+/* Mensajes */
+.loading-msg {
+  text-align: center;
+  padding: 60px;
+  color: #444;
+  font-style: italic;
+}

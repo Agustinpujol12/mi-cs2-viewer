@@ -1,0 +1,87 @@
+/* Contenedor general */
+.timer-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  padding: 10px 0;
+  user-select: none; /* Evita selección de texto al arrastrar */
+}
+
+/* Reloj de tiempo */
+.timer-display {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: white;
+  min-width: 65px;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Carril de la barra (Fondo) */
+.progress-track {
+  flex-grow: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  /* touch-action: none ayuda en dispositivos táctiles */
+  touch-action: none;
+  transition: height 0.2s ease;
+}
+
+/* Agrandar un poco al pasar el mouse para facilitar el agarre */
+.progress-track:hover {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Relleno de la barra (La parte roja) */
+.progress-fill {
+  height: 100%;
+  background: #ff4757; /* Rojo intenso CS2 */
+  border-radius: 4px;
+  position: relative;
+  /* Transición suave para el avance automático */
+  transition: width 0.1s linear; 
+  box-shadow: 0 0 8px rgba(255, 71, 87, 0.3);
+}
+
+/* ➡️ ELIMINACIÓN DE LAG: Cuando se está arrastrando, 0 transición */
+.progress-track:active .progress-fill {
+  transition: none !important;
+  background: #ff6b81; /* Color más brillante al arrastrar */
+}
+
+/* El círculo o "tirador" en la punta de la barra */
+.progress-handle {
+  position: absolute;
+  right: -6px; /* Centrado en la punta */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  display: none; /* Oculto por defecto */
+  z-index: 5;
+}
+
+/* Mostrar el tirador solo al interactuar */
+.progress-track:hover .progress-handle,
+.progress-track:active .progress-handle {
+  display: block;
+}
+
+/* --- ESTILOS DE CONTENEDOR (Opcional, según tu Layout) --- */
+.timer-container {
+  position: relative;
+  background: linear-gradient(180deg, #1a1d21 0%, #0f1215 100%);
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 5px 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}

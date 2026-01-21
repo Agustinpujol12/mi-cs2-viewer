@@ -1,0 +1,70 @@
+/* Contenedor general */
+.controls-container {
+  margin: 0;
+  padding: 10px 0;
+  display: flex;
+  align-items: center;
+}
+
+.controls-wrapper {
+  display: flex;
+  justify-content: flex-start; /* Alineado a la izquierda según la imagen */
+  align-items: center;
+  gap: 12px;
+}
+
+/* Estilo base de todos los botones */
+.control-button {
+  background: linear-gradient(180deg, #2a2d32 0%, #1a1d21 100%);
+  border: 2px solid #3a3d42 !important;
+  color: #ffffff !important;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.control-button:hover {
+  background: linear-gradient(180deg, #3a3d42 0%, #2a2d32 100%);
+  border-color: #4a4d52 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* Botón de Velocidad (Indicador de texto) */
+.control-button.speed-indicator {
+  width: auto;
+  min-width: 55px;
+  height: 45px;
+  padding: 0 10px;
+  font-size: 16px;
+  font-weight: bold;
+  font-family: 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Estado activo cuando la velocidad no es 1x */
+.control-button.speed-indicator.active {
+  border-color: var(--TColor) !important;
+  color: var(--TColor) !important;
+  box-shadow: 0 0 10px rgba(230, 176, 34, 0.3);
+}
+
+/* Botón Play/Pause (Más grande y con borde dorado) */
+.control-button.play-button {
+  width: 55px;
+  height: 55px;
+  font-size: 32px;
+  border: 2px solid var(--TColor) !important;
+}
+
+.control-button.play-button:hover {
+  border-color: #ffcc4d !important; /* Un brillo más claro al pasar el mouse */
+}
+
+.control-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}

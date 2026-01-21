@@ -1,0 +1,89 @@
+.mapBomb {
+  /* Tamaño mejorado para visibilidad */
+  width: 1.2%;
+  height: 1.2%;
+  margin-left: -.6%;
+  margin-top: -.6%;
+  border-radius: 50%;
+
+  /* Transiciones suaves */
+  transition: left 60ms linear, top 60ms linear, opacity 60ms linear, background-color 60ms linear;
+  will-change: left, top;
+
+  position: absolute;
+  z-index: 25; /* Por encima de jugadores y granadas */
+  opacity: 1;
+  background-color: #ff4500;
+  
+  /* Borde blanco para resaltar sobre el mapa oscuro */
+  border: 1.5px solid white;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+/* --- ANIMACIONES DE ESTADO --- */
+
+/* PLANTANDO: Parpadeo rápido entre naranja y rojo */
+@keyframes planting {
+  0%, 100% { background-color: #ff4500; transform: scale(1); }
+  50% { background-color: #ff0000; transform: scale(1.2); }
+}
+
+.mapBomb.planting {
+  animation: planting 400ms infinite ease-in-out;
+}
+
+/* PLANTADA: Pulso de luz roja (El clásico "Beep") */
+@keyframes planted {
+  0% { 
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); 
+    background-color: #ff0000;
+    transform: scale(1);
+  }
+  20% { 
+    box-shadow: 0 0 15px 10px rgba(255, 0, 0, 0); 
+    background-color: #b30000;
+    transform: scale(1.1);
+  }
+  100% { 
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); 
+    transform: scale(1);
+  }
+}
+
+.mapBomb.planted {
+  animation: planted 800ms infinite; /* Pulso constante */
+  border-color: #ffcccc;
+}
+
+/* DESACTIVANDO: Pulso azul brillante */
+@keyframes defusing {
+  0%, 100% { background-color: #00d2ff; box-shadow: 0 0 5px #00d2ff; }
+  50% { background-color: #ffffff; box-shadow: 0 0 15px 5px #00d2ff; }
+}
+
+.mapBomb.defusing {
+  animation: defusing 500ms infinite ease-in-out;
+  border-color: white;
+}
+
+/* DESACTIVADA: Se queda en azul sólido con un brillo suave */
+.mapBomb.defused {
+  background-color: #00d2ff;
+  border-color: white;
+  box-shadow: 0 0 10px #00d2ff;
+  transition: all 0.5s ease;
+}
+
+/* EXPLOSIÓN: Onda expansiva masiva */
+@keyframes explode {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 orange; opacity: 1; }
+  10% { transform: scale(2); box-shadow: 0 0 50px 30px #ff4500; opacity: 0.9; }
+  50% { transform: scale(4); box-shadow: 0 0 100px 80px #ff8c00; opacity: 0.5; }
+  90% { transform: scale(6); box-shadow: 0 0 150px 120px transparent; opacity: 0; }
+  100% { transform: scale(1); box-shadow: none; opacity: 0; }
+}
+
+.mapBomb.explode {
+  animation: explode 4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  border: none;
+}

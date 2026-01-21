@@ -1,0 +1,187 @@
+:root {
+  --TColor: #e6b022;       /* Dorado T */
+  --CTColor: #5dade2;      /* Azul CT */
+  --BgDark: #0b0f12;       /* Fondo Oscuro */
+  --TimelineHeight: 85px;  /* Espacio reservado abajo para la línea de tiempo */
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--BgDark);
+  font-family: 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden; /* Evita scroll en la ventana principal */
+}
+
+/* 1. CONTENEDOR PRINCIPAL (SISTEMA DE CAPAS) */
+.grid-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--BgDark);
+  overflow: hidden;
+}
+
+/* 2. CAPA INFERIOR: EL MAPA */
+.grid-item.map {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  /* Restamos la altura de la barra de tiempo para que el mapa no quede tapado abajo */
+  height: calc(100% - var(--TimelineHeight)); 
+  z-index: 1; /* Nivel 1: Al fondo */
+  
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at center, #1a1e24 0%, #0b0f12 100%);
+}
+
+.grid-item.map canvas {
+  /* Tamaño del mapa: 75% para dejar espacio a los lados para los paneles de jugadores */
+  width: 75%; 
+  height: 90%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 40px rgba(0,0,0,0.6)); /* Sombra para darle profundidad */
+}
+
+/* 3. CAPA SUPERIOR: EL HUD (PANEL TRANSPARENTE) */
+.grid-item.infoPanel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10; /* Nivel 10: Encima del mapa */
+  pointer-events: none; /* ¡CLAVE! Deja que los clics pasen a través de lo transparente hacia el mapa */
+  padding: 0;
+  background: transparent;
+  
+  /* Esto asegura que InfoPanel ocupe todo y organice sus hijos */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Habilitamos interacción SOLO en los elementos visibles (botones, textos), no en el aire */
+.grid-item.infoPanel * {
+  pointer-events: auto;
+}
+
+/* 4. CLASES DE ÍCONOS DEL JUEGO (INTOCABLES) */
+/* Estas clases son necesarias para que el motor dibuje las armas y utilidades */
+.dead {
+  background-image: url("./assets/icons/csgo/death.svg");
+  opacity: 0.7;
+}
+
+.defuse {
+  background-image: url("./assets/icons/csgo/defuse.svg");
+  filter: brightness(2) drop-shadow(0 0 2px var(--CTColor));
+}
+
+.vest {
+  background-image: url("./assets/icons/csgo/vest.svg");
+}
+
+.vesthelm {
+  background-image: url("./assets/icons/csgo/vesthelm.svg");
+}
+
+/* Configuración común para todos los íconos */
+.dead, .defuse, .vest, .vesthelm {
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+/* Colores de texto globales */
+.T { color: var(--TColor) !important; font-weight: bold; }
+.CT { color: var(--CTColor) !important; font-weight: bold; }
+
+/* 5. PANTALLA DE CARGA (LOADING) */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(11, 15, 18, 0.95); /* Fondo oscuro casi opaco */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(5px);
+}
+
+.loading-dialog {
+  background: #1e2329;
+  color: #fff;
+  padding: 40px 60px;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid #333;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 4px solid #333;
+  border-top-color: var(--TColor);
+  border-right-color: var(--CTColor);
+  animation: spin 1s linear infinite;
+  margin: 0 auto 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 6px;
+  background-color: #000;
+  border-radius: 3px;
+  margin-top: 15px;
+  overflow: hidden;
+  border: 1px solid #333;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--TColor), var(--CTColor));
+  transition: width 0.3s ease;
+}
+
+.error-icon {
+  font-size: 40px;
+  color: #e74c3c;
+  margin-bottom: 10px;
+}
+
+/* --- RESPONSIVE PARA MÓVILES --- */
+@media (max-width: 900px) {
+  .grid-container {
+    overflow-y: auto; /* Permitir scroll en celular */
+  }
+  
+  .grid-item.map {
+    position: relative; /* En celular el mapa deja de ser fondo absoluto */
+    height: 300px;
+    width: 100%;
+    z-index: 1;
+  }
+  
+  .grid-item.infoPanel {
+    position: relative;
+    height: auto;
+    background: var(--BgDark); /* Fondo sólido para que se lea */
+    pointer-events: auto;
+  }
+
+  .icon { width: 24px; height: 20px; background-size: contain; background-repeat: no-repeat; background-position: center; display: inline-block;}
+}
