@@ -1,0 +1,156 @@
+syntax = "proto3";
+
+package csgo;
+
+option go_package = "/message";
+
+message Message {
+  enum MessageType {
+    Zero = 0;
+    TickStateUpdate = 1;
+    AddPlayerType = 2;
+    InitType = 4;
+    DemoEndType = 5;
+    RoundType = 6;
+    ProgressType = 7;
+    TimeUpdateType = 8;
+    ShotType = 9;
+    EmptyType = 10;
+    FragType = 11;
+    PlayRequestType = 12;
+    ErrorType = 13;
+    GrenadeEventType = 14;
+  }
+  MessageType msgType = 1;
+  int32 tick = 2;
+  optional TeamUpdate teamUpdate = 3;
+  optional TickState tickState = 4;
+  optional Init init = 5;
+  optional Round round = 6;
+  optional Progress progress = 7;
+  optional RoundTime roundTime = 8;
+  optional Shot shot = 9;
+  optional Frag frag = 10;
+  optional Demo demo = 11;
+  optional Grenade grenadeEvent = 12;
+  optional string message = 13;
+}
+
+message Player {
+  int32 PlayerId = 1;
+  string Name = 2;
+  string Team = 3;
+  double X = 4;
+  double Y = 5;
+  double Z = 6;
+  float Rotation = 7;
+  bool Alive = 8;
+  string Weapon = 9;
+  bool Flashed = 10;
+  int32 Hp = 11;
+  int32 Armor = 12;
+  bool Helmet = 13;
+  bool Defuse = 14;
+  bool Bomb = 15;
+  int32 Money = 16;
+  string Primary = 17;
+  int32 PrimaryAmmoMagazine = 18;
+  int32 PrimaryAmmoReserve = 19;
+  string Secondary = 20;
+  int32 SecondaryAmmoMagazine = 21;
+  int32 SecondaryAmmoReserve = 22;
+  repeated string Grenades = 23;
+  int32 Kills = 24;
+  int32 Assists = 25;
+  int32 Deaths = 26;
+}
+
+message TeamUpdate {
+  string TName = 1;
+  int32 TScore = 2;
+  string CTName = 3;
+  int32 CTScore = 4;
+}
+
+message TickState {
+  repeated Player Players = 1;
+  repeated Grenade Nades = 2;
+  Bomb Bomb = 3;
+}
+
+message Init {
+  string mapName = 1;
+  string TName = 2;
+  string CTName = 3;
+}
+
+message Frag {
+  string VictimName = 1;
+  string VictimTeam = 2;
+  string KillerName = 3;
+  string KillerTeam = 4;
+  string Weapon = 5;
+  bool IsHeadshot = 6;
+}
+
+message Shot {
+  int32 PlayerId = 1;
+  double X = 2;
+  double Y = 3;
+  float Rotation = 4;
+}
+
+message Grenade {
+  int32 id = 1;
+  string kind = 2;
+  double x = 3;
+  double y = 4;
+  double z = 5;
+  string action = 6;
+}
+
+message Bomb {
+  enum BombState {
+    Zero = 0;
+    Defusing = 1;
+    Defused = 2;
+    Explode = 3;
+    Planting = 4;
+    Planted = 5;
+  }
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  BombState state = 4;
+}
+
+message Round {
+  int32 RoundNo = 1;
+  int32 RoundTookSeconds = 2;
+  int32 StartTick = 3;
+  int32 FreezetimeEndTick = 4;
+  int32 EndTick = 5;
+  repeated Message Ticks = 6;
+  TeamUpdate TeamState = 7;
+  string Winner = 8;
+}
+
+message Progress {
+  int32 Progress = 1;
+  string Message = 2;
+}
+
+message RoundTime {
+  string RoundTime = 1;
+  int32 FreezeTime = 2;
+}
+
+message Demo {
+  enum DemoPlatformType {
+    Upload = 0;
+    Faceit = 1;
+    Steam = 2;
+  }
+  string MatchId = 1;
+  DemoPlatformType Platform = 2;
+}

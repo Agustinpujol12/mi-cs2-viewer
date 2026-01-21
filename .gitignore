@@ -1,0 +1,14 @@
+.idea/
+*.iml
+*.DS_Store
+assets/icons/shapes
+.vscode/
+*.exe
+.secret/
+*.wasm
+web/public/wasm/
+testdemos/
+.env
+.env.local
+web/dist/
+server/csgo-2d-demo-player
