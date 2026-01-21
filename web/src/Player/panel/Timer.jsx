@@ -7,62 +7,77 @@ class Timer extends Component {
     super(props);
     this.state = { time: "0:00", progress: 0 };
     this.messageBus = props.messageBus;
-    this.trackRef = createRef(); // Referencia para cálculos precisos
-    this.lastEmit = 0;
+    this.trackRef = createRef();
+    
+    // Variables para el loop de renderizado
+    this.isTicking = false; 
+    this.latestProgress = 0;
 
-    // Listeners de mensajes (sin cambios)
+    // Listeners
     this.messageBus.listen([8], msg => { this.setState({ time: msg.roundtime.roundtime }) });
     this.messageBus.listen([MSG_PLAY_ROUND_PROGRESS], msg => { 
       if (!this.isDragging) this.setState({ progress: msg.progress });
     });
 
-    // Bindeo de funciones para eventos globales
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
   }
 
-  // --- LÓGICA DE ARRASTRE GLOBAL ---
-
   onMouseDown(e) {
     this.isDragging = true;
-    this.updateProgress(e.clientX);
+    this.updateProgress(e.clientX, true); // Forzar primer frame
     
-    // Agregamos eventos a la ventana global para no perder el rastro
     window.addEventListener('mousemove', this.onMouseMove);
     window.addEventListener('mouseup', this.onMouseUp);
-    
-    // Evita selección de texto molesta mientras arrastras
     document.body.style.userSelect = 'none';
   }
 
   onMouseMove(e) {
     if (!this.isDragging) return;
-    this.updateProgress(e.clientX);
+    this.updateProgress(e.clientX, false);
   }
 
-  onMouseUp() {
+  onMouseUp(e) {
     this.isDragging = false;
+    // Emitimos una última vez para asegurar precisión al soltar
+    if (e) this.updateProgress(e.clientX, true);
+
     window.removeEventListener('mousemove', this.onMouseMove);
     window.removeEventListener('mouseup', this.onMouseUp);
     document.body.style.userSelect = 'auto';
   }
 
-  updateProgress(clientX) {
+  updateProgress(clientX, forceImmediate = false) {
     const track = this.trackRef.current;
     if (!track) return;
 
     const rect = track.getBoundingClientRect();
-    const progress = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const rawProgress = (clientX - rect.left) / rect.width;
+    const progress = Math.max(0, Math.min(1, rawProgress));
 
-    // UI Instantánea (60fps)
+    // 1. ACTUALIZACIÓN VISUAL (Barra): Instantánea
     this.setState({ progress });
 
-    // Emisión optimizada (Throttling) al Player.js
-    const now = Date.now();
-    if (now - this.lastEmit > 16) { // Bajamos a 16ms para máxima fluidez (60Hz)
-      this.messageBus.emit({ msgtype: MSG_PROGRESS_MOVE, progress });
-      this.lastEmit = now;
+    // 2. ACTUALIZACIÓN LÓGICA (Jugadores): Sincronizada con GPU
+    this.latestProgress = progress;
+
+    if (forceImmediate) {
+        this.emitProgress();
+    } else if (!this.isTicking) {
+        // Si no hay un frame pendiente, pedimos uno
+        this.isTicking = true;
+        requestAnimationFrame(() => {
+            this.emitProgress();
+            this.isTicking = false;
+        });
     }
+  }
+
+  emitProgress() {
+    this.messageBus.emit({ 
+        msgtype: MSG_PROGRESS_MOVE, 
+        progress: this.latestProgress 
+    });
   }
 
   render() {

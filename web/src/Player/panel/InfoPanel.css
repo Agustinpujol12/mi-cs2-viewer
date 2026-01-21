@@ -32,24 +32,34 @@
   align-items: flex-end;
 }
 
+/* src/Player/panel/InfoPanel.css */
+
 /* === SECCIÓN INFERIOR === */
 .hud-bottom-section {
   position: absolute;
   bottom: 0; left: 0; width: 100%;
   display: flex;
-  flex-direction: column; /* Apila Rondas sobre Playback */
+  flex-direction: column;
   pointer-events: auto;
-  background: linear-gradient(to top, rgba(10,10,10,1) 0%, rgba(10,10,10,0) 100%);
-  padding-bottom: 10px;
+  
+  /* Hacemos el degradado más suave */
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+  
+  /* ⬇️ CAMBIO CLAVE: Quitamos el relleno de abajo (antes tenía 10px).
+     Esto hará que toda la barra baje hasta el borde de la pantalla. */
+  padding-bottom: 0px; 
 }
 
 /* Piso 1: Rondas */
 .rounds-container {
   width: 100%;
-  padding: 0 40px; /* Margen para que no toque los bordes */
-  margin-bottom: 5px;
+  padding: 0 40px;
   display: flex;
   justify-content: center;
+  
+  /* ⬇️ CAMBIO CLAVE: Reducimos la separación con la barra de abajo (antes 5px).
+     Esto acerca los números a la barra de play, despejando el mapa. */
+  margin-bottom: 2px; 
 }
 
 /* Piso 2: Barra Negra de Reproducción */
@@ -57,11 +67,13 @@
   display: flex;
   align-items: center;
   gap: 15px;
-  padding: 10px 30px;
-  background: rgba(20, 20, 20, 0.9);
-  border-top: 1px solid #333;
-  border-radius: 8px 8px 0 0;
-  margin: 0 20px; /* Un poco separado de los bordes laterales */
+  padding: 8px 30px; /* Un poco más compacto */
+  background: rgba(15, 15, 15, 0.95); /* Casi negro sólido */
+  border-top: 1px solid #222;
+  
+  /* Quitamos el borde redondeado de abajo para que pegue con el final de la pantalla */
+  border-radius: 8px 8px 0 0; 
+  margin: 0 20px; 
 }
 
 .controls-area { flex-shrink: 0; }

@@ -12,6 +12,10 @@
   height: 100%;
   width: 100%;
   overflow: hidden;
+  
+  /* ✅ CORRECCIÓN: Usamos 'black' (negro puro) para que se fusione 
+     perfectamente con el fondo de la imagen del mapa */
+  background-color: black; 
 }
 
 /* Contenedor del mapa */
@@ -24,6 +28,9 @@
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
+  
+  /* Importante: Transparente para dejar ver el fondo del wrapper */
+  background-color: transparent; 
 
   z-index: 0;
   transition: transform 0.2s ease;
@@ -32,6 +39,9 @@
   box-shadow:
     inset 0 0 40px rgba(0, 0, 0, 0.55),
     0 0 25px rgba(0, 0, 0, 0.8);
+
+  /* 🌑 FILTRO TÁCTICO: Oscurece el mapa para que resalten los jugadores */
+  filter: saturate(0.2) brightness(0.6) contrast(1.1);
 }
 
 /* Viñeta tipo CS2 Lens */
@@ -79,7 +89,7 @@
   will-change: left, top;
 }
 
-/* 💨 SMOKE EXPLODE – CS2 LENS FUERTE */
+/* 💨 SMOKE EXPLODE – VERSIÓN SÓLIDA GRIS */
 .smoke.explode {
   width: 10%;
   height: 10%;
@@ -89,23 +99,21 @@
   border-radius: 50%;
   position: absolute;
 
+  /* Degradado gris para simular densidad */
   background: radial-gradient(
     circle,
-    rgba(230, 230, 230, 0.95) 0%,
-    rgba(190, 190, 190, 0.9) 30%,
-    rgba(140, 140, 140, 0.75) 50%,
-    rgba(80, 80, 80, 0.55) 65%,
-    rgba(30, 30, 30, 0.35) 78%,
-    transparent 88%
+    rgba(140, 140, 140, 0.98) 0%,   
+    rgba(110, 110, 110, 0.95) 40%,  
+    rgba(70, 70, 70, 0.85) 70%,     
+    transparent 85%                 
   );
 
+  /* Sombras oscuras para dar volumen */
   box-shadow:
-    0 0 25px rgba(200, 200, 200, 0.9),
-    0 0 45px rgba(120, 120, 120, 0.8),
-    inset 0 0 30px rgba(255, 255, 255, 0.4),
-    inset 0 0 18px rgba(60, 60, 60, 0.9);
+    0 0 15px rgba(30, 30, 30, 0.6),      
+    inset 0 0 25px rgba(40, 40, 40, 0.5);
 
-  filter: blur(0.8px);
+  filter: blur(0.4px);
   animation: smokePulse 3.5s infinite ease-in-out;
 }
 

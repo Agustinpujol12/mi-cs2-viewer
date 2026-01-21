@@ -146,7 +146,25 @@ class Map2d extends Component {
     }
   }
 
-  handleMouseDown = (e) => {
+handleMouseDown = (e) => {
+    // 🖱️ BOTÓN CENTRAL (RUEDA) CLICK
+    if (e.button === 1) { 
+      e.preventDefault();
+      
+      // Lógica de toggle: Si tiene zoom, lo quita. Si no tiene, pone zoom máximo.
+      if (this.state.zoom > 1) {
+        this.resetZoom();
+      } else {
+        this.setState({ 
+          zoom: 2.5, // Zoom máximo instantáneo
+          panX: 0,   // Centramos
+          panY: 0 
+        }); 
+      }
+      return; // Salimos para no iniciar el arrastre
+    }
+
+    // CLICK IZQUIERDO NORMAL (ARRASTRE)
     if (this.state.zoom > 1) {
       this.setState({
         isDragging: true,

@@ -67,30 +67,28 @@
 }
 
 .smoke.explode {
+  /* CAMBIO 1: Degradado puramente gris */
   background: radial-gradient(
     circle,
-    rgba(240, 240, 240, 1) 0%,
-    rgba(200, 200, 200, 0.95) 30%,
-    rgba(140, 140, 140, 0.85) 50%,
-    rgba(90, 90, 90, 0.7) 65%,
-    rgba(40, 40, 40, 0.55) 75%,
-    rgba(20, 20, 20, 0.35) 82%,
-    transparent 90%
+    rgba(140, 140, 140, 0.98) 0%,   /* Centro gris sólido (ya no blanco) */
+    rgba(146, 141, 141, 0.95) 40%,  /* Cuerpo gris medio */
+    rgba(112, 112, 112, 0.85) 70%,     /* Borde gris oscuro */
+    transparent 85%                 /* Difuminado final corto */
   );
 
-  /* BORDE + VOLUMEN FUERTE */
+  /* CAMBIO 2: Sombras oscuras en lugar de blancas para dar volumen sin brillo */
   box-shadow:
-    0 0 22px rgba(255, 255, 255, 0.8),
-    0 0 40px rgba(120, 120, 120, 0.9),
-    inset 0 0 28px rgba(160, 160, 160, 0.9),
-    inset 0 0 14px rgba(60, 60, 60, 0.9);
+    0 0 15px rgba(32, 32, 32, 0.6),      /* Sombra exterior oscura */
+    inset 0 0 25px rgba(40, 40, 40, 0.5); /* Sombra interior para "densidad" */
 
   width: 8%;
   height: 8%;
   margin-left: -4%;
   margin-top: -4%;
 
-  filter: blur(0.6px);
+  /* Menos blur para que se vea más definida/sólida */
+  filter: blur(0.4px); 
+  
   animation: smokePulse 4s infinite ease-in-out;
 }
 

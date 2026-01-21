@@ -7,12 +7,13 @@ import "./Home.css";
 const CLOUDFLARE_URL = "https://pub-6aca6add705b46cc8d8bbe3f1fdf6076.r2.dev/";
 const IS_LOCALHOST = window.location.hostname === "localhost";
 
-// Si estás en tu PC usa la ruta del disco D (vía Vite), si no usa Cloudflare
-const BASE_PATH = IS_LOCALHOST 
-  ? "D:/Demo Cs2/licheo/" 
-  : CLOUDFLARE_URL;
+// ✅ CAMBIO CLAVE:
+// Al estar en la carpeta 'public', la ruta es relativa a la raíz del sitio web.
+const LOCAL_PATH = "/licheo/"; 
 
-// Lista de mapas para los botones de arriba
+const BASE_PATH = IS_LOCALHOST ? LOCAL_PATH : CLOUDFLARE_URL;
+
+// Lista de mapas
 const MAP_POOL = ["Mirage", "Inferno", "Nuke", "Ancient", "Anubis", "Overpass", "Dust2", "Train"];
 
 export function Home() {
@@ -22,34 +23,33 @@ export function Home() {
 
   // 1. CARGAR DATOS AL INICIAR
   useEffect(() => {
-    // Definimos la URL según el entorno
     const finalUrl = `${BASE_PATH}partidos.json?t=${Date.now()}`;
+    
+    console.log("Cargando datos desde:", finalUrl);
 
     axios.get(finalUrl)
       .then(response => {
-        setMatches(response.data);
+        if (Array.isArray(response.data)) {
+            setMatches(response.data);
+        } else {
+            console.error("El formato del JSON no es un array:", response.data);
+        }
         setLoading(false);
       })
       .catch(error => {
         console.error("Error cargando lista:", error);
-        // Respaldo: Si falla Cloudflare en Vercel, intenta el archivo local en public
-        if (!IS_LOCALHOST) {
-          axios.get("/partidos.json")
-            .then(res => setMatches(res.data))
-            .catch(() => console.warn("No se encontró respaldo local en Vercel"));
-        }
         setLoading(false);
       });
   }, []);
 
   // 2. FUNCIÓN PARA BORRAR CACHÉ
   const handleClearCache = async () => {
-    if (window.confirm("¿Estás seguro? Se borrarán las demos descargadas de tu PC para liberar espacio.")) {
+    if (window.confirm("¿Estás seguro? Se borrarán las demos descargadas.")) {
       try {
         await clear();
-        alert("♻️ Espacio liberado correctamente.");
+        alert("♻️ Caché borrada.");
       } catch (e) {
-        alert("Error al intentar borrar la caché.");
+        alert("Error al borrar la caché.");
       }
     }
   };
@@ -62,7 +62,7 @@ export function Home() {
   return (
     <div className="dashboard-container">
       
-      {/* --- BARRA SUPERIOR (FILTROS) --- */}
+      {/* BARRA SUPERIOR */}
       <div className="control-bar">
         <div className="filter-group">
           <button 
@@ -83,17 +83,16 @@ export function Home() {
           ))}
         </div>
 
-        <button className="btn-cache" onClick={handleClearCache} title="Borrar demos del disco">
+        <button className="btn-cache" onClick={handleClearCache}>
           🗑️ Borrar Caché
         </button>
       </div>
 
-      {/* --- LISTA DE PARTIDOS --- */}
+      {/* LISTA DE PARTIDOS */}
       {loading ? (
-        <div className="loading-msg">Cargando biblioteca de demos...</div>
+        <div className="loading-msg">Cargando biblioteca...</div>
       ) : (
         <div className="matches-table">
-          
           <div className="table-header">
             <div>Fecha</div>
             <div>Mapa</div>
@@ -102,10 +101,7 @@ export function Home() {
           </div>
 
           {displayedMatches.map((match) => (
-            <div 
-              key={match.id} 
-              className={`match-row map-${match.map.toLowerCase()}`}
-            >
+            <div key={match.id || Math.random()} className={`match-row map-${match.map ? match.map.toLowerCase() : 'unknown'}`}>
               <div className="cell-date">{match.date}</div>
               <div className="cell-map">{match.map}</div>
               <div className="cell-title">{match.title}</div>
@@ -119,9 +115,7 @@ export function Home() {
                     ▶ PLAY
                   </a>
                 ) : (
-                  <span style={{color:'#444', fontSize:'0.7rem', display:'block', textAlign:'center'}}>
-                    SUBIENDO
-                  </span>
+                  <span>SUBIENDO</span>
                 )}
               </div>
             </div>
@@ -129,7 +123,7 @@ export function Home() {
 
           {displayedMatches.length === 0 && (
             <div style={{textAlign:'center', padding:'40px', color:'#555'}}>
-              No hay partidos registrados en {filterMap}.
+              No hay partidos en esta categoría.
             </div>
           )}
         </div>
