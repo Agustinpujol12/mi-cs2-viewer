@@ -146,26 +146,20 @@ class Map2d extends Component {
     }
   }
 
-handleMouseDown = (e) => {
-    // 🖱️ BOTÓN CENTRAL (RUEDA) CLICK
+  handleMouseDown = (e) => {
+    // 🖱️ BOTÓN CENTRAL (RUEDA) CLICK -> ZOOM MAX/RESET
     if (e.button === 1) { 
       e.preventDefault();
-      
-      // Lógica de toggle: Si tiene zoom, lo quita. Si no tiene, pone zoom máximo.
       if (this.state.zoom > 1) {
         this.resetZoom();
       } else {
-        this.setState({ 
-          zoom: 2.5, // Zoom máximo instantáneo
-          panX: 0,   // Centramos
-          panY: 0 
-        }); 
+        this.setState({ zoom: 2.5, panX: 0, panY: 0 }); 
       }
-      return; // Salimos para no iniciar el arrastre
+      return; 
     }
 
-    // CLICK IZQUIERDO NORMAL (ARRASTRE)
-    if (this.state.zoom > 1) {
+    // CLICK IZQUIERDO -> ARRASTRAR (Siempre permitido)
+    if (e.button === 0) {
       this.setState({
         isDragging: true,
         lastMouseX: e.clientX,
@@ -191,11 +185,41 @@ handleMouseDown = (e) => {
     this.setState({ isDragging: false });
   };
 
+  // 🔍 LOGICA DE ZOOM HACIA EL MOUSE
+// 🔍 LOGICA DE ZOOM HACIA EL MOUSE (CORREGIDA)
   handleWheel = (e) => {
     e.preventDefault();
-    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+
+    const { zoom, panX, panY } = this.state;
+    
+    // 1. Configuración de sensibilidad
+    const delta = -Math.sign(e.deltaY); // Detecta si la rueda va arriba o abajo
+    const zoomStep = 0.15; // Velocidad del zoom
+    const zoomFactor = 1 + (delta * zoomStep);
+
+    // 2. Calcular nuevo Zoom (Limitado entre 1x y 5x)
+    const newZoom = Math.min(Math.max(zoom * zoomFactor, 1), 5);
+
+    if (newZoom === zoom) return; // Si ya estamos al límite, no hacer nada
+
+    // 3. Calcular posición del mouse relativa al CENTRO del mapa
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left - (rect.width / 2);
+    const mouseY = e.clientY - rect.top - (rect.height / 2);
+
+    // 4. Fórmula Matemática para "Zoom hacia el puntero"
+    // Ajustamos el desplazamiento (pan) para compensar el crecimiento del mapa
+    const scaleRatio = newZoom / zoom;
+    
+    const newPanX = panX * scaleRatio + mouseX * (1 - scaleRatio);
+    const newPanY = panY * scaleRatio + mouseY * (1 - scaleRatio);
+
+    console.log(`Zoom: ${zoom.toFixed(2)} -> ${newZoom.toFixed(2)}`); // 🛠️ Para depurar
+
     this.setState({
-      zoom: Math.min(Math.max(this.state.zoom * zoomFactor, 1), 2.5),
+      zoom: newZoom,
+      panX: newPanX,
+      panY: newPanY
     });
   };
 
@@ -209,11 +233,10 @@ handleMouseDown = (e) => {
     
     const style = {
       backgroundImage: `url(${mapImage})`,
-      transform: `scale(${this.state.zoom}) translate(${this.state.panX}px, ${this.state.panY}px)`,
-      transformOrigin: "center",
-      /* ➡️ MEJORA ESTILO CS2 LENS: Mapa más oscuro y saturado para que el HUD resalte */
+      transform: `translate(${this.state.panX}px, ${this.state.panY}px) scale(${this.state.zoom})`,
+      transformOrigin: "center", // Importante para la fórmula del handleWheel
       filter: "brightness(0.75) contrast(1.15) saturate(1.1)",
-      cursor: this.state.zoom > 1 ? (this.state.isDragging ? "grabbing" : "grab") : "default",
+      cursor: this.state.isDragging ? "grabbing" : "grab",
     };
 
     const playerComponents = this.state.players?.map((p) => (

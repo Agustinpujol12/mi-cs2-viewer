@@ -12,3 +12,10 @@ testdemos/
 .env.local
 web/dist/
 server/csgo-2d-demo-player
+
+# Ignorar archivos de replay pesados
+*.dem
+
+# Ignorar carpetas de demos si prefieres
+public/licheo/*.dem
+public/misdemos/*.dem
