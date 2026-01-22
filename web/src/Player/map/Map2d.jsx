@@ -77,6 +77,14 @@ class Map2d extends Component {
     document.addEventListener("keydown", this.handleKeyDown.bind(this));
   }
 
+  componentDidMount() {
+    if (this.props.hide) {
+      setTimeout(function () {
+        this.props.removeCallback(this.props.index)
+      }.bind(this), 300)
+    }
+  }
+
   tickUpdate(message) {
     if (message.tickstate.playersList) {
       this.setState({
@@ -93,9 +101,20 @@ class Map2d extends Component {
     });
   }
 
+  getTeam(playerId) {
+    if (!this.state.players || !playerId) return "";
+    const p = this.state.players.find(player => player.playerid === playerId);
+    return p ? p.team : "";
+  }
+
   handleNadeExplosion(msg) {
+    const grenadeEvent = msg.grenadeevent;
+    const throwerId = grenadeEvent.thrower || grenadeEvent.owner;
+    const team = this.getTeam(throwerId);
+    const enrichedEvent = { ...grenadeEvent, team: team };
+
     this.setState({
-      nadeExplosions: [...this.state.nadeExplosions, msg.grenadeevent],
+      nadeExplosions: [...this.state.nadeExplosions, enrichedEvent],
     });
   }
 
@@ -157,8 +176,7 @@ class Map2d extends Component {
       }
       return; 
     }
-
-    // CLICK IZQUIERDO -> ARRASTRAR (Siempre permitido)
+    // CLICK IZQUIERDO -> ARRASTRAR
     if (e.button === 0) {
       this.setState({
         isDragging: true,
@@ -186,35 +204,28 @@ class Map2d extends Component {
   };
 
   // 🔍 LOGICA DE ZOOM HACIA EL MOUSE
-// 🔍 LOGICA DE ZOOM HACIA EL MOUSE (CORREGIDA)
   handleWheel = (e) => {
     e.preventDefault();
 
     const { zoom, panX, panY } = this.state;
-    
-    // 1. Configuración de sensibilidad
-    const delta = -Math.sign(e.deltaY); // Detecta si la rueda va arriba o abajo
-    const zoomStep = 0.15; // Velocidad del zoom
-    const zoomFactor = 1 + (delta * zoomStep);
-
-    // 2. Calcular nuevo Zoom (Limitado entre 1x y 5x)
-    const newZoom = Math.min(Math.max(zoom * zoomFactor, 1), 5);
-
-    if (newZoom === zoom) return; // Si ya estamos al límite, no hacer nada
-
-    // 3. Calcular posición del mouse relativa al CENTRO del mapa
+    // Usamos el wrapper como referencia
     const rect = e.currentTarget.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left - (rect.width / 2);
-    const mouseY = e.clientY - rect.top - (rect.height / 2);
 
-    // 4. Fórmula Matemática para "Zoom hacia el puntero"
-    // Ajustamos el desplazamiento (pan) para compensar el crecimiento del mapa
-    const scaleRatio = newZoom / zoom;
+    const mouseX = e.clientX - rect.left - rect.width / 2;
+    const mouseY = e.clientY - rect.top - rect.height / 2;
+
+    const delta = -Math.sign(e.deltaY);
+    const zoomStep = 0.15;
+    const zoomFactor = 1 + (delta * zoomStep);
     
-    const newPanX = panX * scaleRatio + mouseX * (1 - scaleRatio);
-    const newPanY = panY * scaleRatio + mouseY * (1 - scaleRatio);
+    // Zoom limitado entre 1x y 6x
+    let newZoom = zoom * zoomFactor;
+    newZoom = Math.min(Math.max(newZoom, 1), 6);
 
-    console.log(`Zoom: ${zoom.toFixed(2)} -> ${newZoom.toFixed(2)}`); // 🛠️ Para depurar
+    const effectiveRatio = newZoom / zoom;
+    
+    const newPanX = panX * effectiveRatio + mouseX * (1 - effectiveRatio);
+    const newPanY = panY * effectiveRatio + mouseY * (1 - effectiveRatio);
 
     this.setState({
       zoom: newZoom,
@@ -234,9 +245,10 @@ class Map2d extends Component {
     const style = {
       backgroundImage: `url(${mapImage})`,
       transform: `translate(${this.state.panX}px, ${this.state.panY}px) scale(${this.state.zoom})`,
-      transformOrigin: "center", // Importante para la fórmula del handleWheel
+      transformOrigin: "center",
       filter: "brightness(0.75) contrast(1.15) saturate(1.1)",
       cursor: this.state.isDragging ? "grabbing" : "grab",
+      pointerEvents: "auto"
     };
 
     const playerComponents = this.state.players?.map((p) => (
@@ -248,9 +260,11 @@ class Map2d extends Component {
       return <MapShot key={i} shot={s} removeCallback={this.removeShot.bind(this)} index={i} />;
     });
 
-    const nadeComponents = this.state.nades?.map((n) => (
-      <MapNade key={n.id} nade={n} />
-    )) || [];
+    const nadeComponents = this.state.nades?.map((n) => {
+        const ownerTeam = this.getTeam(n.thrower || n.owner);
+        const nadeWithTeam = { ...n, team: ownerTeam };
+        return <MapNade key={n.id} nade={nadeWithTeam} />;
+    }) || [];
 
     const nadeExplosions = this.state.nadeExplosions.map((n, i) => {
       if (n != null && n.id) {
@@ -260,25 +274,28 @@ class Map2d extends Component {
     });
 
     return (
-      <div className="map-wrapper">
-        <div
-          className="map-container"
-          id="map"
-          style={style}
-          onMouseDown={this.handleMouseDown}
-          onMouseMove={this.handleMouseMove}
-          onMouseUp={this.handleMouseUp}
-          onMouseLeave={this.handleMouseUp}
-          onWheel={this.handleWheel}
-        >
+      <div 
+        className="map-wrapper"
+        // 🔥 EVENTOS EN EL PADRE (Wrapper)
+        onMouseDown={this.handleMouseDown}
+        onMouseMove={this.handleMouseMove}
+        onMouseUp={this.handleMouseUp}
+        onMouseLeave={this.handleMouseUp}
+        onWheel={this.handleWheel}
+        // Nos aseguramos que el wrapper sea clickeable
+        style={{ pointerEvents: 'all' }}
+      >
+        <div className="map-container" id="map" style={style}>
           {playerComponents}
           {nadeComponents}
           {shots}
           {nadeExplosions}
           <MapBomb bomb={this.state.bomb} />
         </div>
+
         <KillFeed messageBus={this.props.messageBus} />
         
+        {/* BOTONES INTERFAZ */}
         {this.state.hasLower && (
           <button className={`map-button layer-toggle ${this.state.layer === "_lower" ? "lower-active" : ""}`} onClick={this.toggleLayer.bind(this)}>
             <div className="layer-icon">⇅</div>

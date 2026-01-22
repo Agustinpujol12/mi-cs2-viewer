@@ -11,3 +11,18 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+/* =========================================
+   🔧 FIX: DESBLOQUEAR INTERACCIÓN CON EL MAPA
+   La capa .hud-overlay estaba tapando el zoom y los clics.
+   ========================================= */
+
+/* 1. Hacemos que la capa contenedora sea invisible a los clics */
+.hud-overlay {
+  pointer-events: none !important;
+}
+
+/* 2. IMPORTANTE: Reactivamos los clics en sus hijos (Scoreboard, Listas, Botones) 
+      para que puedas seguir usándolos normal. */
+.hud-overlay > * {
+  pointer-events: auto !important;
+}
