@@ -1,164 +1,160 @@
 /* =========================================
    🏃 JUGADOR BASE
    ========================================= */
+
+/* =========================================
+   🎨 PALETA DE COLORES (CORREGIDA)
+   ========================================= */
+:root {
+  /* ⚠️ ERROR ANTERIOR: Tenías '!important' aquí. */
+  /* EN CSS, LAS VARIABLES NO LLEVAN !IMPORTANT EN SU DEFINICIÓN O SE ROMPEN. */
+  --CTColor: #5f97b6; 
+  --TColor: #d4a74e;   
+}
+
 .player {
-  width: 2.2%;
+  width: 2.2%; 
   height: 2.2%;
   margin-left: -1.1%;
   margin-top: -1.1%;
+  
   border-radius: 50%;
   position: absolute;
-  z-index: 10;
+  z-index: 20;
   transition: all 60ms linear;
   
-  /* Borde y sombra por defecto */
-  border: 2px solid #FFFFFF; 
-  box-shadow: 0 0 5px rgba(0,0,0, 0.8);
+  border: 2px solid #ffffff; 
+  box-shadow: 0 1px 3px rgba(0,0,0, 0.5);
 }
 
-/* --- EQUIPOS (Vivos) --- */
+/* --- COLORES DE EQUIPO --- */
 .player.CT {
   background-color: var(--CTColor);
-  box-shadow: 0 0 10px var(--CTColor), inset 0 0 5px rgba(255,255,255,0.5);
+  /* Definimos color de texto para que la X de muerte lo herede */
+  color: var(--CTColor);
 }
 
 .player.T {
   background-color: var(--TColor);
-  box-shadow: 0 0 10px var(--TColor), inset 0 0 5px rgba(255,255,255,0.5);
-}
-
-/* Efecto Flash */
-.player.flashed {
-  box-shadow: 0 0 1vh 0.4vh white;
-  background-color: #fff !important;
-}
-
-/* =========================================
-   💀 MUERTE (La "X")
-   ========================================= */
-.player.dead {
-  /* Quitamos el círculo, el fondo y el borde */
-  background-color: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  
-  /* Aseguramos que se vea (quitamos opacidad anterior) */
-  opacity: 1 !important; 
-  filter: none;
-  z-index: 5; /* Por debajo de los vivos */
-}
-
-/* Ocultamos flecha, arma y nombre cuando mueren */
-.player.dead .playerArrow,
-.player.dead .playerMapWeapon,
-.player.dead .playerShot,
-.player.dead .playerNameTag {
-  display: none;
-}
-
-/* Dibujamos la X usando ::after */
-.player.dead::after {
-  content: "✖"; /* Carácter de cruz gruesa */
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  
-  font-family: sans-serif;
-  font-weight: bold;
-  font-size: 1.8vh; /* Tamaño de la X */
-  line-height: 1;
-  text-shadow: 0 0 2px black; /* Sombra para que se vea en cualquier suelo */
-}
-
-/* Color de la X según equipo */
-.player.dead.CT::after {
-  color: var(--CTColor); 
-}
-
-.player.dead.T::after {
   color: var(--TColor);
 }
 
-
-/* =========================================
-   👀 VISION Y ACCESORIOS
-   ========================================= */
-.playerArrow {
-  width: 140%;
-  height: 140%;
-  left: -20%;
-  top: -20%;
-  background: radial-gradient(circle at 50% 0%, rgba(255,255,255,1) 0%, transparent 80%);
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-  position: absolute;
-  opacity: 1.0; 
+/* --- ESTADO FLASHEADO --- */
+.player.flashed {
+  background-color: #ffffff !important;
+  box-shadow: 0 0 10px white;
+  border-color: #e0e0e0;
 }
 
+/* =========================================
+   💀 MUERTE (La "X" Limpia)
+   ========================================= */
+.player.dead {
+  /* 🛑 ELIMINAMOS CUALQUIER FONDO O IMAGEN PREVIA (LA CALAVERA) */
+  background: none !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important; 
+  z-index: 5;
+}
+
+/* Ocultamos todo lo demás */
+.player.dead .playerArrowContainer, 
+.player.dead .playerMapWeapon, 
+.player.dead .playerNameTag {
+  display: none !important;
+}
+
+.player.dead::after {
+  /* Forzamos la X */
+  content: "X" !important; 
+  
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+
+  font-weight: 900;
+  font-size: 2vh;
+  
+  /* 🛑 FORZAMOS FUENTE DE TEXTO PARA EVITAR EMOJIS DE CALAVERA */
+  font-family: Arial, Helvetica, sans-serif !important; 
+
+  text-shadow: 0 0 3px rgba(0,0,0,0.9);
+
+  /* 🔥 COLOR: Usa el color del equipo (CT o T) */
+  color: currentColor !important;
+  
+  /* Reseteamos filtros por si acaso */
+  filter: none !important;
+  mix-blend-mode: normal !important;
+}
+
+/* =========================================
+   👀 FLECHA PUNTA SÓLIDA
+   ========================================= */
 .playerArrowContainer {
-  width: 100%;
-  height: 100%;
-}
-
-.playerShot {
-  transition: transform 100ms linear;
-  transform-origin: top;
-  width: 2px;
-  height: 5%;
-  background-color: #fff;
   position: absolute;
-  box-shadow: 0 0 4px yellow;
-  z-index: 1;
+  width: 130%; height: 130%;
+  top: -15%; left: -15%;
+  pointer-events: none;
+  z-index: 21; 
 }
 
-/* Colores de la flecha de visión */
-.player.T .playerArrow { background-color: var(--TColor); }
-.player.CT .playerArrow { background-color: var(--CTColor); }
+.playerArrow {
+  position: absolute; width: 100%; height: 100%; transform-origin: 50% 50%;
+}
 
+.solidArrowTip {
+  position: absolute;
+  top: -24%; /* Ajustado para tocar el borde */
+  left: 50%; transform: translateX(-50%);
+
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 7px solid #ffffff;
+  
+  filter: drop-shadow(0 -1px 1px rgba(0,0,0,0.3));
+}
 
 /* =========================================
-   🏷️ ETIQUETA DE NOMBRE (NAME TAG)
+   🏷️ ETIQUETA DE NOMBRE Y ARMA
    ========================================= */
+
+/* 1. ARMA */
+.playerMapWeapon {
+  position: absolute;
+  top: -45px; 
+  left: 50%; transform: translateX(-50%);
+  width: 28px; height: 14px; 
+  z-index: 35;
+  background-size: contain; background-repeat: no-repeat; background-position: bottom center;
+  filter: drop-shadow(0 1px 1px black);
+}
+
+/* 2. NOMBRE */
 .playerNameTag {
   position: absolute;
-  transform: translate(-35%, -210%);
-  display: block;
-  border-radius: 3px;
+  top: -25px; 
+  left: 50%; transform: translateX(-50%);
   
-  /* Texto */
-  color: white;
-  white-space: nowrap;
-  padding: 1px 4px;
+  display: block; 
+  border-radius: 8px;
   
-  opacity: 1; 
-  z-index: 20;
+  color: #111111; 
   font-size: 1.1vh;
-  font-weight: 800;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-  pointer-events: none;
+  line-height: 1; 
+  font-weight: 600; 
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   
-  /* Borde sutil para separar */
-  border: 1px solid rgba(0,0,0,0.3);
+  white-space: nowrap; 
+  padding: 1px 5px;
+  
+  z-index: 30; pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.5);
 }
 
-/* 🎨 Color de fondo del nombre según equipo */
-.player.T .playerNameTag {
-  background-color: var(--TColor);
-}
-
-.player.CT .playerNameTag {
-  background-color: var(--CTColor);
-}
-
-.playerMapWeapon {
-  width: 200%;
-  height: 100%;
-  display: block;
-  transform: translate(-30%, -420%);
-  opacity: 0.9;
-  z-index: -4;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  filter: drop-shadow(0 1px 2px black);
-}
+.player.CT .playerNameTag { background-color: var(--CTColor); }
+.player.T .playerNameTag { background-color: var(--TColor); }

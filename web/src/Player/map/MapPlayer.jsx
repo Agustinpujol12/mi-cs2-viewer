@@ -7,25 +7,35 @@ class MapPlayer extends Component {
     const posStyle = {
       left: `${this.props.player.x}%`,
       top: `${this.props.player.y}%`,
-      background: `linear-gradient(0deg, var(--${this.props.player.team}Color) ${this.props.player.hp}%, transparent 0%)`,
     }
+
+    // La rotación aplica al contenedor de la punta
     const rotStyle = {
-      transform: `rotate(${this.props.player.rotation}deg) translateY(-50%)`,
+      transform: `rotate(${this.props.player.rotation}deg)`,
     }
+
     const playerClass = `player
       ${this.props.player.team}
       ${this.props.player.flashed ? "flashed" : ""}
       ${!this.props.player.alive ? "dead" : ""}`
+    
     let playerArrow
     if (this.props.player.alive) {
-      playerArrow = <div className={`playerArrow ${this.props.player.team}`} style={rotStyle}></div>
+      playerArrow = (
+        <div className="playerArrow" style={rotStyle}>
+          {/* ⚠️ NUEVO: Solo una punta triangular sólida */}
+          <div className="solidArrowTip"></div>
+        </div>
+      )
     }
 
     return (
         <div className={playerClass} style={posStyle}>
-          <div className={`playerArrowContainer ${this.props.player.team}`}>
+          {/* La flecha ahora va POR ENCIMA del jugador en el Z-index */}
+          <div className="playerArrowContainer">
             {playerArrow}
           </div>
+          
           <div className="playerNameTag">{this.props.player.name}</div>
           <div className={`playerMapWeapon ${this.props.player.weapon}`}></div>
         </div>

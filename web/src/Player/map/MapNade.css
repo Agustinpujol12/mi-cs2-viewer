@@ -81,8 +81,8 @@
     0 0 15px rgba(32, 32, 32, 0.6),      /* Sombra exterior oscura */
     inset 0 0 25px rgba(40, 40, 40, 0.5); /* Sombra interior para "densidad" */
 
-  width: 8%;
-  height: 8%;
+  width: 6%;
+  height: 6%;
   margin-left: -4%;
   margin-top: -4%;
 
@@ -131,4 +131,58 @@
   50% {
     box-shadow: 0 0 0.3vh 0.5vh darkorange;
   }
+}
+
+/* ... (MANTÉN TODO TU CSS ANTERIOR IGUAL) ... */
+
+/* =========================================
+   〰️ TRAYECTORIA DE GRANADAS (Nade Trail)
+   ========================================= */
+
+/* ... (MANTÉN TODO EL CSS DE ARRIBA IGUAL: .mapNade, explosiones, etc.) ... */
+
+/* =========================================
+   〰️ TRAYECTORIA DE GRANADAS (Color por Equipo)
+   ========================================= */
+
+.nade-trail-svg {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  overflow: visible; 
+  z-index: -1;
+  pointer-events: none;
+}
+
+.nade-trail-line {
+  fill: none;
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 4, 4; /* Punteada */
+  
+  /* Color por defecto (Gris) por si acaso */
+  stroke: rgba(200, 200, 200, 0.6);
+  
+  transition: opacity 0.3s ease;
+}
+
+/* 🎨 ASIGNACIÓN DE COLOR POR EQUIPO */
+
+/* Si es CT (Azul) */
+.mapNade.CT .nade-trail-line {
+  stroke: var(--CTColor);
+  opacity: 0.8; /* Un poco más visible */
+}
+
+/* Si es T (Amarillo) */
+.mapNade.T .nade-trail-line {
+  stroke: var(--TColor);
+  opacity: 0.8;
+}
+
+/* Al explotar se borra */
+.mapNade.explode .nade-trail-line,
+.mapNade.fire .nade-trail-line {
+  opacity: 0;
+  transition: opacity 1s linear;
 }

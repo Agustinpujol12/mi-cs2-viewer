@@ -218,18 +218,18 @@
 /* ASSETS (ACTUALIZADO)  */
 /* ===================== */
 
-.c4 { background-image: url("./assets/icons/csgo/c4.svg"); }
-.defuse { background-image: url("./assets/icons/csgo/defuse.svg"); }
-.hegrenade { background-image: url("./assets/icons/csgo/hegrenade.svg"); }
-.flashbang { background-image: url("./assets/icons/csgo/flashbang.svg"); }
-.smokegrenade { background-image: url("./assets/icons/csgo/smokegrenade.svg"); }
-.molotov { background-image: url("./assets/icons/csgo/molotov.svg"); } /* ← AGREGAR ESTA LÍNEA */
-.incgrenade { background-image: url("./assets/icons/csgo/incgrenade.svg"); }
-.decoy { background-image: url("./assets/icons/csgo/decoy.svg"); }
+.c4 {   background-image: url("../assets/icons/csgo/c4.svg"); }
+.defuse { background-image: url("../assets/icons/csgo/defuse.svg") }
+.hegrenade { background-image: url("../assets/icons/csgo/hegrenade.svg"); }
+.flashbang { background-image: url("../assets/icons/csgo/flashbang.svg"); }
+.smokegrenade { background-image: url("../assets/icons/csgo/smokegrenade.svg"); }
+.molotov { background-image: url("../assets/icons/csgo/molotov.svg"); } /* ← AGREGAR ESTA LÍNEA */
+.incgrenade { background-image: url("../assets/icons/csgo/incgrenade.svg"); }
+.decoy { background-image: url("../assets/icons/csgo/decoy.svg"); }
 
 /* Ajuste opcional para que la molotov resalte como en la imagen */
-.molotov {
-  filter: drop-shadow(0 0 2px rgba(230, 176, 34, 0.4));
+.molotov { 
+  background-image: url("../assets/icons/csgo/molotov.svg"); 
 }
 /* ===================== */
 /* ESTADO MUERTO */
