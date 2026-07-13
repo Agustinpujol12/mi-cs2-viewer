@@ -12,16 +12,19 @@ const bombStateClasses = {
 
 class MapBomb extends Component {
   render() {
+    console.log("MapBomb team prop:", this.props.team);
     const style = {
       left: `${this.props.bomb.x}%`,
       top: `${this.props.bomb.y}%`,
     }
-    // console.log(this.props.bomb.state)
 
     return (
-        <div className={`mapBomb ${bombStateClasses[this.props.bomb.state]}`} style={style}>
-          &nbsp;
-        </div>
+      <div
+        className={`mapBomb ${bombStateClasses[this.props.bomb.state]} ${this.props.team || ""}`}
+        style={style}
+      >
+        &nbsp;
+      </div>
     );
   }
 }

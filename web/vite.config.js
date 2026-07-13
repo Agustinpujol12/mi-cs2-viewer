@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import preact from "@preact/preset-vite";
 
 export default defineConfig({
+  base: './', // <-- LÍNEA AGREGADA PARA ELECTRON
   plugins: [preact()],
   resolve: {
     alias: {

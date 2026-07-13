@@ -40,17 +40,7 @@
   background-color: lightblue;
 }
 
-/* Fuego / Molotov */
-.fire.explode {
-  background: radial-gradient(circle, #ff4500 0%, #ff8c00 40%, transparent 80%);
-  width: 6%;
-  height: 6%;
-  margin-left: -3%;
-  margin-top: -3%;
-  opacity: 0.6;
-  filter: blur(1px);
-  animation: fireBurn 0.5s infinite alternate;
-}
+
 
 .flash.explode {
   box-shadow: 0 0 1vh 2vh whitesmoke;
@@ -112,16 +102,6 @@
   }
 }
 
-.fire.explode {
-  transition: box-shadow 0.2s linear;
-  background: darkorange;
-  opacity: .5;
-  width: .5%;
-  height: .5%;
-  margin-left: -.25%;
-  margin-top: -.25%;
-  animation: firing 1s linear infinite;
-}
 
 @keyframes firing {
   0% {
@@ -169,20 +149,120 @@
 /* 🎨 ASIGNACIÓN DE COLOR POR EQUIPO */
 
 /* Si es CT (Azul) */
-.mapNade.CT .nade-trail-line {
-  stroke: var(--CTColor);
-  opacity: 0.8; /* Un poco más visible */
-}
+.mapNade.CT .nade-trail-line { stroke: var(--CTColor); }
+.mapNade.T .nade-trail-line { stroke: var(--TColor); }
 
-/* Si es T (Amarillo) */
-.mapNade.T .nade-trail-line {
-  stroke: var(--TColor);
-  opacity: 0.8;
-}
+/* Después (funciona) */
+.nade-trail-line.CT { stroke: var(--CTColor); opacity: 0.8; }
+.nade-trail-line.T { stroke: var(--TColor); opacity: 0.8; }
 
 /* Al explotar se borra */
 .mapNade.explode .nade-trail-line,
 .mapNade.fire .nade-trail-line {
   opacity: 0;
   transition: opacity 1s linear;
+}
+
+/* =========================================
+   💨 HUMOS MINIMALISTAS (Estilo CS2 Lens)
+   ========================================= */
+
+.smoke.explode {
+  background: rgba(150, 150, 150, 0.65); 
+  box-shadow: none; 
+  opacity: 1; 
+  
+  width: 6%; 
+  height: 6%;
+  margin-left: -3%;
+  margin-top: -3%;
+  
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 5;
+  animation: none; 
+  filter: none;
+  
+  box-sizing: border-box; 
+  
+  /* 🚨 ELIMINAMOS los bordes estáticos, ahora el SVG hará todo el trabajo */
+  border: none; 
+}
+
+.smoke-timer-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.smoke-ring-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* 🚨 LA MAGIA ANTIHORARIA: 
+     rotate(-90deg) pone el inicio a las 12 en punto.
+     scaleX(-1) actúa como un espejo, invirtiendo la dirección de vaciado. */
+  transform: rotate(-90deg) scaleX(-1); 
+}
+
+/* Anillo de progreso dinámico */
+.smoke-ring-progress {
+  fill: none;
+  /* 🚨 Agregamos un color blanco/gris de rescate por si falla el equipo */
+  stroke: rgba(200, 200, 200, 0.5); 
+  stroke-width: 4; 
+  stroke-dasharray: 308; 
+  transition: stroke-dashoffset 1s linear;
+  stroke-linecap: butt; 
+}
+
+/* Colores de la aureola según equipo (Si todo sale bien, usarán estos) */
+.smoke-ring-progress.CT { stroke: #29b6f6; } /* Celeste CT */
+.smoke-ring-progress.T { stroke: #ffca28; }  /* Amarillo T */
+
+/* Número de marca de agua */
+.smoke-time {
+  color: rgba(255, 255, 255, 0.35); 
+  font-family: 'Consolas', 'Courier New', monospace; 
+  font-size: 1.2vh; 
+  font-weight: normal; 
+  z-index: 10;
+}
+
+/* =========================================
+   🔥 FUEGO / MOLOTOV (Área Táctica de Daño)
+   ========================================= */
+
+.fire.explode, .molotov.explode, .incendiary.explode, .inferno {
+  /* 🚨 CAMBIO 1: Degradado más anaranjado (255, 120, 0) */
+  background: radial-gradient(circle, rgba(255, 120, 0, 0.5) 30%, rgba(255, 120, 0, 0.15) 70%, transparent 100%); 
+  
+  border: none;
+  box-shadow: none; 
+  animation: none; 
+  
+  /* 🚨 CAMBIO 2: Círculos un poco más pequeños (5%) */
+  width: 5%; 
+  height: 5%;
+  margin-left: -2.5%; 
+  margin-top: -2.5%;  
+  border-radius: 50%;
+  
+  z-index: 4; 
+  pointer-events: none; 
+}
+
+/* Ocultamos los números y la aureola en el fuego */
+.fire.explode .smoke-timer-container, 
+.molotov.explode .smoke-timer-container, 
+.incendiary.explode .smoke-timer-container,
+.inferno .smoke-timer-container {
+  display: none !important;
 }

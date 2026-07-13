@@ -1,7 +1,7 @@
 import { useEffect, useState, useContext, useRef } from "react";
 import { useLocation } from "preact-iso";
 import axios from "axios";
-import { get, set } from 'idb-keyval'; // ⚡ IMPORTANTE: Librería para caché
+import { get, set } from 'idb-keyval';
 import "./PlayerApp.css";
 import "./weapons.css";
 import ErrorBoundary from "./Error.jsx";
@@ -44,14 +44,39 @@ export function PlayerApp() {
     }
 
     worker.current.onmessage = (e) => {
-      console.log("Message received from worker", e);
+      if (window.hangTimeout) {
+        clearTimeout(window.hangTimeout);
+        window.hangTimeout = setTimeout(() => {
+          setIsError(true);
+          setLoadingMessage([
+            "⚠️ Error Crítico: Formato de CS2 incompatible.",
+            "El motor WASM se colgó al intentar leer esta demo y fue reiniciado."
+          ]);
+          if (worker.current) {
+            worker.current.terminate();
+            worker.current = new Worker("worker.js");
+          }
+        }, 60000);
+      }
+
       if (e.data === "ready") {
         setIsWasmLoaded(true);
       } else {
         const msg = proto.Message.deserializeBinary(e.data).toObject();
         loaderMessageBus.emit(msg);
+
+        // 🚨 LA SOLUCIÓN INYECTADA AQUÍ: 
+        // Cuando recibe el mapa (4) o termina de cargar (5), quitamos el Loading
+        if (msg.msgtype === 4 || msg.msgtype === 5) {
+          clearTimeout(window.hangTimeout);
+          window.hangTimeout = null;
+          // Forzamos a que el sistema sepa que ya puede mostrar el mapa
+          setIsPlaying(true);
+          setHasPlayed(true);
+        }
       }
     };
+
     playerMessageBus.listen([13], function (msg) {
       alert(msg.message);
     });
@@ -69,7 +94,7 @@ export function PlayerApp() {
       if (msg.playing) {
         setHasPlayed(true);
       }
-      if (!msg.playing) {
+      if (!msg.playing && !hasPlayed) {
         setLoadingMessage(["Loading..."]);
       }
     });
@@ -84,51 +109,97 @@ export function PlayerApp() {
       if (player.current) {
         player.current = null;
       }
+
+      if (window.hangTimeout) {
+        clearTimeout(window.hangTimeout);
+        window.hangTimeout = null;
+      }
     };
   }, []);
 
-  // 2. LÓGICA DE DESCARGA INTELIGENTE (CACHÉ + CLOUDFLARE)
+  // 2. LÓGICA DE CARGA DE DEMO
   useEffect(() => {
     console.log("isWasmLoaded", isWasmLoaded);
-    
-    // Caso A: Demo cargada localmente (arrastrada)
+
+    const startWatchdog = () => {
+      if (window.hangTimeout) clearTimeout(window.hangTimeout);
+      window.hangTimeout = setTimeout(() => {
+        setIsError(true);
+        setLoadingMessage([
+          "⚠️ Error Crítico: La demo tiene un formato incompatible.",
+          "El analizador no pudo procesarla."
+        ]);
+        if (worker.current) worker.current.terminate();
+      }, 60000);
+    };
+
+    // Caso A: Demo cargada localmente (drag & drop)
     if (isWasmLoaded && demoData.demoData) {
       console.log("Posting local demo data to worker.");
+      startWatchdog();
       worker.current.postMessage(demoData.demoData);
-    } 
-    // Caso B: Demo desde URL (Cloudflare)
-    else if (isWasmLoaded && location.query.demourl) {
-      const demoUrl = location.query.demourl;
-      
-      // Extraemos el nombre real del archivo
-      let filename = demoUrl.substring(demoUrl.lastIndexOf('/') + 1);
+    }
+    // Caso B y C: Demo desde URL
+    else if (isWasmLoaded) {
+      // ✅ Parseamos manualmente porque preact-iso falla dentro de iframes en Electron
+      const params = new URLSearchParams(window.location.search);
+      const rawDemourl = params.get('demourl');
 
-      // --- PASO 1: BUSCAR EN CACHÉ LOCAL ---
-      setLoadingMessage(["Verificando archivos locales..."]);
-      
-      get(filename).then((cachedData) => {
-        if (cachedData) {
-          // ¡ÉXITO! ESTABA GUARDADA
-          console.log("⚡ Demo encontrada en caché. Saltando descarga.");
-          setLoadingMessage(["Cargando desde disco local..."]);
-          
+      if (!rawDemourl) return; // No hay demo que cargar
+
+      const demoUrl = decodeURIComponent(rawDemourl);
+      console.log("demoUrl detectada:", demoUrl);
+
+      // Caso B: Ruta local de Electron (file:///)
+      if (demoUrl.startsWith('file:///')) {
+        console.log("Leyendo demo desde disco (Electron):", demoUrl);
+        setLoadingMessage(["Leyendo demo desde disco..."]);
+
+        const electron = window.require('electron');
+        const ipcRenderer = electron.ipcRenderer;
+
+        ipcRenderer.invoke('read-demo-file', demoUrl).then((result) => {
+          if (!result.success) {
+            setIsError(true);
+            setLoadingMessage(["Error al leer el archivo: " + result.error]);
+            return;
+          }
+
+          const dataArray = new Uint8Array(result.data);
+          const filename = demoUrl.substring(demoUrl.lastIndexOf('/') + 1);
+
+          console.log("Demo leída correctamente, enviando al worker...");
+          setLoadingMessage(["Procesando demo..."]);
+          startWatchdog();
           worker.current.postMessage({
             filename: filename,
-            data: cachedData,
+            data: dataArray,
           });
-        } else {
-          // NO ESTABA: DESCARGAR DE LA NUBE
-          console.log("☁️ Iniciando descarga desde Cloudflare...");
-          setIsDownloading(true);
+        }).catch((err) => {
+          setIsError(true);
+          setLoadingMessage(["Error IPC: " + err.message]);
+        });
+      }
+      // Caso C: Demo desde URL HTTP (Cloudflare/Localhost)
+      else {
+        const filename = demoUrl.substring(demoUrl.lastIndexOf('/') + 1);
+        setLoadingMessage(["Verificando archivos locales..."]);
 
-          axios
-            .get(demoUrl, {
+        get(filename).then((cachedData) => {
+          if (cachedData) {
+            console.log("⚡ Demo encontrada en caché.");
+            setLoadingMessage(["Cargando desde disco local..."]);
+            startWatchdog();
+            worker.current.postMessage({ filename, data: cachedData });
+          } else {
+            console.log("☁️ Descargando desde origen...");
+            setIsDownloading(true);
+
+            axios.get(demoUrl, {
               responseType: "arraybuffer",
               onDownloadProgress: (progressEvent) => {
-                var totalSize = progressEvent.event.target.getResponseHeader("X-Demo-Length");
-                setDownloadProgress(
-                  totalSize ? (progressEvent.loaded / totalSize) * 100 : 0
-                );
+                const totalSize = progressEvent.event.target.getResponseHeader("X-Demo-Length");
+                setDownloadProgress(totalSize ? (progressEvent.loaded / totalSize) * 100 : 0);
                 setLoadingMessage([`Descargando demo de la nube...`]);
               },
             })
@@ -136,43 +207,36 @@ export function PlayerApp() {
               setIsDownloading(false);
               setDownloadProgress(0);
               setLoadingMessage(["Guardando y procesando..."]);
-              
+
+              let finalFilename = filename;
               const contentDisposition = response.headers["content-disposition"];
-              
               if (contentDisposition) {
                 const match = contentDisposition.match(/filename="([^"]+)"/);
-                if (match) {
-                  filename = match[1];
-                }
+                if (match) finalFilename = match[1];
               }
-              
-              const dataArray = new Uint8Array(response.data);
 
-              // --- PASO 2: GUARDAR EN CACHÉ PARA LA PRÓXIMA ---
-              set(filename, dataArray)
-                .then(() => console.log("💾 Demo guardada en caché local."))
+              const dataArray = new Uint8Array(response.data);
+              set(finalFilename, dataArray)
+                .then(() => console.log("💾 Demo guardada en caché."))
                 .catch(err => console.error("Error guardando caché:", err));
-              
-              // ENVIAR AL WORKER
-              worker.current.postMessage({
-                filename: filename,
-                data: dataArray,
-              });
+
+              startWatchdog();
+              worker.current.postMessage({ filename: finalFilename, data: dataArray });
             })
             .catch((error) => {
               setIsDownloading(false);
-              setDownloadProgress(0);
               setIsError(true);
-              setLoadingMessage(["Error downloading demo: " + error.message]);
+              setLoadingMessage(["Error descargando demo: " + error.message]);
             });
-        }
-      });
+          }
+        });
+      }
     }
   }, [isWasmLoaded]);
 
   return (
     <ErrorBoundary>
-      
+
       {/* --- BOTÓN FLOTANTE PARA VOLVER AL MENÚ --- */}
       <a href="/" style={{
           position: 'fixed',
@@ -195,7 +259,6 @@ export function PlayerApp() {
       }}>
         ⬅ Menú Principal
       </a>
-      {/* ----------------------------------------- */}
 
       <div className="grid-container">
         <div className="grid-item map">
@@ -205,6 +268,7 @@ export function PlayerApp() {
           <InfoPanel messageBus={playerMessageBus} />
         </div>
       </div>
+
       {!isPlaying && !hasPlayed && (
         <div className="loading-overlay">
           <div className="loading-dialog">

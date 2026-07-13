@@ -24,7 +24,6 @@ class Player {
     this.interval = defaultInterval;
     this.messageBus = playerBus;
 
-    // --- ESCUCHA DE CARGA (LOADER) ---
     loaderBus.listen(
       [4, 5, 6],
       function (msg) {
@@ -39,12 +38,11 @@ class Player {
             this.handleAddRound(msg.round);
             break;
           default:
-            console.log("unknown message", msg);
+            break;
         }
       }.bind(this)
     );
 
-    // --- ESCUCHA DE COMANDOS DEL USUARIO ---
     this.messageBus.listen(
       [
         MSG_PLAY,
@@ -62,7 +60,6 @@ class Player {
               this.play();
             }
             break;
-
           case MSG_PLAY_TOGGLE:
             if (this.playing) {
               this.stop();
@@ -70,45 +67,39 @@ class Player {
               this.play();
             }
             break;
-
           case MSG_PLAY_ROUND_INCREMENT:
             this.playRound(this.playingRoundI + msg.increment + 1);
             break;
-
           case MSG_PLAY_SPEED:
             this.stop();
             this.interval = defaultInterval / msg.speed;
             this.play();
             break;
-
           case MSG_PROGRESS_MOVE:
-            // OPTIMIZACIÓN: Quitamos el this.stop() para que el movimiento sea fluido
-            let round = this.rounds[this.playingRoundI];
-            if (!round) return;
+            let roundMove = this.rounds[this.playingRoundI];
+            // 🚨 PROTECCIÓN: Si movemos la barra y no hay ronda, no hacer nada
+            if (!roundMove || !roundMove.ticksList) return;
 
-            // Calculamos el tick destino basado en el progreso (0 a 1)
             this.currentTickI = Math.round(
-              (round.ticksList.length - 1) * msg.progress
+              (roundMove.ticksList.length - 1) * msg.progress
             );
             
-            // Forzamos la ejecución del tick para que la vista previa se actualice al arrastrar
-            if (round.ticksList[this.currentTickI]) {
-              this.playTick(round.ticksList[this.currentTickI]);
+            if (roundMove.ticksList[this.currentTickI]) {
+              this.playTick(roundMove.ticksList[this.currentTickI]);
             }
             break;
-
-          default:
-            console.log("unknown message [Player.js]", msg);
         }
       }.bind(this)
     );
   }
 
   handleAddRound(roundMsg) {
-    console.log("add round", roundMsg);
+    if (!roundMsg || !roundMsg.ticksList) return;
+
     let roundTicks = [];
     let tickMessages = [];
     let currentTick = roundMsg.ticksList[0].tick;
+    
     roundMsg.ticksList.forEach(function (tick) {
       if (tick.tick !== currentTick) {
         roundTicks.push(tickMessages);
@@ -120,10 +111,12 @@ class Player {
 
     roundMsg.ticksList = roundTicks;
     this.rounds.push(roundMsg);
+    
     this.messageBus.emit({
       msgtype: MSG_INIT_ROUNDS,
       rounds: this.rounds,
     });
+
     if (this.rounds.length === 1) {
       this.playRound(1);
     }
@@ -143,34 +136,47 @@ class Player {
 
   stop() {
     this.switchPlaying(false);
-    clearInterval(this.player);
+    if (this.player) {
+      clearInterval(this.player);
+    }
   }
 
   play() {
     this.switchPlaying(true);
-    let round = this.rounds[this.playingRoundI];
     clearInterval(this.player);
+
     this.player = setInterval(
       function () {
-        if (this.currentTickI >= round.ticksList.length) {
+        if (!this.playing) {
+          clearInterval(this.player);
+          return;
+        }
+
+        // 🚨 SOLUCIÓN MAGISTRAL: Buscamos la ronda actual en cada frame
+        let currentRound = this.rounds[this.playingRoundI];
+
+        // Si la ronda todavía no existe, esperamos en silencio (NO CRASHEAMOS)
+        if (!currentRound || !currentRound.ticksList) {
+          return; 
+        }
+
+        if (this.currentTickI >= currentRound.ticksList.length) {
           if (this.playingRoundI + 1 >= this.rounds.length) {
             this.stop();
           } else {
             this.playRound(this.playingRoundI + 2);
           }
-        }
-        if (!this.playing) {
-          clearInterval(this.player);
           return;
         }
         
-        this.playTick(round.ticksList[this.currentTickI]);
-        
-        // Emitir progreso a la UI
-        this.messageBus.emit({
-          msgtype: MSG_PLAY_ROUND_PROGRESS,
-          progress: this.currentTickI / round.ticksList.length,
-        });
+        const currentTickData = currentRound.ticksList[this.currentTickI];
+        if (currentTickData) {
+            this.playTick(currentTickData);
+            this.messageBus.emit({
+              msgtype: MSG_PLAY_ROUND_PROGRESS,
+              progress: this.currentTickI / currentRound.ticksList.length,
+            });
+        }
 
         this.currentTickI++;
       }.bind(this),
@@ -186,10 +192,14 @@ class Player {
   }
 
   playTick(tickMessages) {
-    tickMessages.forEach((msg) => this.messageBus.emit(msg));
+    if (Array.isArray(tickMessages)) {
+        tickMessages.forEach((msg) => this.messageBus.emit(msg));
+    }
   }
 
   playRound(round) {
+    if (this.rounds.length === 0) return;
+
     let roundI = round - 1;
     if (roundI < 0) {
       roundI = 0;
@@ -207,10 +217,13 @@ class Player {
   }
 
   emitPlayRoundEvent() {
-    this.messageBus.emit({
-      msgtype: MSG_TEAMSTATE_UPDATE,
-      teamstate: this.rounds[this.playingRoundI].teamstate,
-    });
+    const currentRound = this.rounds[this.playingRoundI];
+    if (currentRound && currentRound.teamstate) {
+        this.messageBus.emit({
+          msgtype: MSG_TEAMSTATE_UPDATE,
+          teamstate: currentRound.teamstate,
+        });
+    }
   }
 }
 

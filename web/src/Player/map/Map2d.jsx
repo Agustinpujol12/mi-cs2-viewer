@@ -7,7 +7,6 @@ import MapNade from "./MapNade";
 import MapPlayer from "./MapPlayer";
 import MapShot from "./MapShot";
 
-// Import map overviews
 import deAncient from "../../assets/overviews/de_ancient.png";
 import deAncientNight from "../../assets/overviews/de_ancient_night.png";
 import deAnubis from "../../assets/overviews/de_anubis.png";
@@ -43,6 +42,7 @@ const mapOverviews = {
 class Map2d extends Component {
   constructor(props) {
     super(props);
+    this._lastBombTeam = null;
     this.state = {
       mapName: "empty",
       layer: "",
@@ -58,6 +58,7 @@ class Map2d extends Component {
       isDragging: false,
       lastMouseX: 0,
       lastMouseY: 0,
+      bombCarrierTeam: null,
     };
 
     props.messageBus.listen([4], this.onMessage.bind(this));
@@ -66,9 +67,11 @@ class Map2d extends Component {
     props.messageBus.listen(
       [MSG_PLAY_CHANGE],
       function () {
+        this._lastBombTeam = null;
         this.setState({
           shots: [],
           nadeExplosions: [],
+          bombCarrierTeam: null,
         });
       }.bind(this)
     );
@@ -87,10 +90,18 @@ class Map2d extends Component {
 
   tickUpdate(message) {
     if (message.tickstate.playersList) {
+      const bomber = message.tickstate.playersList.find(p => p.bomb === true);
+
+      if (bomber) {
+        this._lastBombTeam = bomber.team;
+      }
+
       this.setState({
         players: message.tickstate.playersList,
         nades: message.tickstate.nadesList,
         bomb: message.tickstate.bomb,
+        currentTick: message.tick,
+        bombCarrierTeam: this._lastBombTeam,
       });
     }
   }
@@ -102,19 +113,50 @@ class Map2d extends Component {
   }
 
   getTeam(playerId) {
-    if (!this.state.players || !playerId) return "";
-    const p = this.state.players.find(player => player.playerid === playerId);
+    if (!this.state.players || playerId == null) return "";
+    const p = this.state.players.find(player =>
+      player.playerid == playerId ||
+      player.userid == playerId ||
+      player.id == playerId ||
+      player.entid == playerId
+    );
     return p ? p.team : "";
   }
 
-  handleNadeExplosion(msg) {
+handleNadeExplosion(msg) {
     const grenadeEvent = msg.grenadeevent;
-    const throwerId = grenadeEvent.thrower || grenadeEvent.owner;
+    const throwerId = grenadeEvent.thrower || grenadeEvent.owner || grenadeEvent.userid;
     const team = this.getTeam(throwerId);
-    const enrichedEvent = { ...grenadeEvent, team: team };
 
-    this.setState({
-      nadeExplosions: [...this.state.nadeExplosions, enrichedEvent],
+    const uniqueId = grenadeEvent.id || grenadeEvent.entityid || `exp_${Date.now()}_${Math.random()}`;
+    const enrichedEvent = { ...grenadeEvent, team: team, id: uniqueId };
+
+    // 🚨 LA SOLUCIÓN: prevState obliga a React a procesar las llamas en fila india
+    this.setState(prevState => {
+      const kind = enrichedEvent.kind;
+      
+      if (kind === "fire" || kind === "molotov" || kind === "incendiary") {
+        const alreadyExists = prevState.nadeExplosions.some(n => {
+          if (!n) return false;
+          
+          const isFire = n.kind === "fire" || n.kind === "molotov" || n.kind === "incendiary";
+          const isSamePlayer = n.thrower === throwerId || n.owner === throwerId || n.userid === throwerId;
+          
+          // Calculamos si esta llama cayó muy cerca de la primera (expansión)
+          const isNearby = Math.abs(n.x - enrichedEvent.x) < 5 && Math.abs(n.y - enrichedEvent.y) < 5;
+
+          // Si es fuego, del mismo jugador y está cerca... es una expansión.
+          return isFire && isSamePlayer && isNearby;
+        });
+
+        // Si ya existe el centro, abortamos y no guardamos esta llama
+        if (alreadyExists) return null; 
+      }
+
+      // Si pasa los filtros, la guardamos
+      return {
+        nadeExplosions: [...prevState.nadeExplosions, enrichedEvent],
+      };
     });
   }
 
@@ -166,17 +208,15 @@ class Map2d extends Component {
   }
 
   handleMouseDown = (e) => {
-    // 🖱️ BOTÓN CENTRAL (RUEDA) CLICK -> ZOOM MAX/RESET
-    if (e.button === 1) { 
+    if (e.button === 1) {
       e.preventDefault();
       if (this.state.zoom > 1) {
         this.resetZoom();
       } else {
-        this.setState({ zoom: 2.5, panX: 0, panY: 0 }); 
+        this.setState({ zoom: 2.5, panX: 0, panY: 0 });
       }
-      return; 
+      return;
     }
-    // CLICK IZQUIERDO -> ARRASTRAR
     if (e.button === 0) {
       this.setState({
         isDragging: true,
@@ -203,12 +243,10 @@ class Map2d extends Component {
     this.setState({ isDragging: false });
   };
 
-  // 🔍 LOGICA DE ZOOM HACIA EL MOUSE
   handleWheel = (e) => {
     e.preventDefault();
 
     const { zoom, panX, panY } = this.state;
-    // Usamos el wrapper como referencia
     const rect = e.currentTarget.getBoundingClientRect();
 
     const mouseX = e.clientX - rect.left - rect.width / 2;
@@ -217,13 +255,12 @@ class Map2d extends Component {
     const delta = -Math.sign(e.deltaY);
     const zoomStep = 0.15;
     const zoomFactor = 1 + (delta * zoomStep);
-    
-    // Zoom limitado entre 1x y 6x
+
     let newZoom = zoom * zoomFactor;
     newZoom = Math.min(Math.max(newZoom, 1), 6);
 
     const effectiveRatio = newZoom / zoom;
-    
+
     const newPanX = panX * effectiveRatio + mouseX * (1 - effectiveRatio);
     const newPanY = panY * effectiveRatio + mouseY * (1 - effectiveRatio);
 
@@ -241,7 +278,7 @@ class Map2d extends Component {
   render() {
     const mapKey = `${this.state.mapName}${this.state.layer}`;
     const mapImage = mapOverviews[mapKey] || emptyMap;
-    
+
     const style = {
       backgroundImage: `url(${mapImage})`,
       transform: `translate(${this.state.panX}px, ${this.state.panY}px) scale(${this.state.zoom})`,
@@ -261,28 +298,30 @@ class Map2d extends Component {
     });
 
     const nadeComponents = this.state.nades?.map((n) => {
-        const ownerTeam = this.getTeam(n.thrower || n.owner);
-        const nadeWithTeam = { ...n, team: ownerTeam };
-        return <MapNade key={n.id} nade={nadeWithTeam} />;
+      const ownerId = n.thrower || n.owner || n.userid;
+      const ownerTeam = n.team || this.getTeam(ownerId);
+      const nadeWithTeam = { ...n, team: ownerTeam };
+      return <MapNade key={n.id} nade={nadeWithTeam} currentTick={this.state.currentTick} />;
     }) || [];
 
     const nadeExplosions = this.state.nadeExplosions.map((n, i) => {
       if (n != null && n.id) {
-        return <MapNade key={n.id} nade={n} hide={true} removeCallback={this.removeNade.bind(this)} index={i} />;
+        const ownerId = n.thrower || n.owner || n.userid;
+        const ownerTeam = n.team || this.getTeam(ownerId);
+        const nadeWithTeam = { ...n, team: ownerTeam };
+        return <MapNade key={n.id} nade={nadeWithTeam} hide={true} removeCallback={this.removeNade.bind(this)} index={i} currentTick={this.state.currentTick} />;
       }
       return null;
     });
 
     return (
-      <div 
+      <div
         className="map-wrapper"
-        // 🔥 EVENTOS EN EL PADRE (Wrapper)
         onMouseDown={this.handleMouseDown}
         onMouseMove={this.handleMouseMove}
         onMouseUp={this.handleMouseUp}
         onMouseLeave={this.handleMouseUp}
         onWheel={this.handleWheel}
-        // Nos aseguramos que el wrapper sea clickeable
         style={{ pointerEvents: 'all' }}
       >
         <div className="map-container" id="map" style={style}>
@@ -290,19 +329,18 @@ class Map2d extends Component {
           {nadeComponents}
           {shots}
           {nadeExplosions}
-          <MapBomb bomb={this.state.bomb} />
+          <MapBomb bomb={this.state.bomb} team={this.state.bombCarrierTeam} />
         </div>
 
         <KillFeed messageBus={this.props.messageBus} />
-        
-        {/* BOTONES INTERFAZ */}
+
         {this.state.hasLower && (
           <button className={`map-button layer-toggle ${this.state.layer === "_lower" ? "lower-active" : ""}`} onClick={this.toggleLayer.bind(this)}>
             <div className="layer-icon">⇅</div>
             <div className="layer-hint">Q</div>
           </button>
         )}
-        
+
         {this.state.zoom > 1 && (
           <button className="map-button zoom-reset" onClick={this.resetZoom.bind(this)}>
             <div className="zoom-icon">⌕</div>

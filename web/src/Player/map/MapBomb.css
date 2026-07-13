@@ -87,3 +87,13 @@
   animation: explode 4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   border: none;
 }
+
+.mapBomb.CT {
+  background-color: #5f97b6;
+  border-color: #b3e5fc;
+}
+
+.mapBomb.T {
+  background-color: #d4a74e;
+  border-color: #fff176;
+}
