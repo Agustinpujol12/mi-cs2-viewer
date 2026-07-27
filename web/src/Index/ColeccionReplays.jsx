@@ -16,12 +16,11 @@ const extraerDatosPistolWasm = (demo, bandoBuscado, equipoObjetivo) => {
       
       let roundCounter = 0;
       let targetRoundNumber = null;
-      let bandoActualDelEquipo = null; 
 
       const timeout = setTimeout(() => {
         worker.terminate();
         resolve(null);
-      }, 90000); 
+      }, 45000); 
 
       worker.onmessage = (e) => {
         if (e.data === "ready") {
@@ -29,51 +28,60 @@ const extraerDatosPistolWasm = (demo, bandoBuscado, equipoObjetivo) => {
         } else {
           const msg = window.proto.Message.deserializeBinary(e.data).toObject();
 
-          // 🔍 ESTRATEGIA 1: SCOREBOARD OFICIAL DEL SERVIDOR (¡Infalible!)
-          if (msg.msgtype === 4 && msg.init) {
-            const nombreSugerido = equipoObjetivo?.nombreSugerido ? equipoObjetivo.nombreSugerido.toLowerCase().trim() : "";
-            const tname = msg.init.tname ? msg.init.tname.toLowerCase() : "";
-            const ctname = msg.init.ctname ? msg.init.ctname.toLowerCase() : "";
-
-            if (nombreSugerido && nombreSugerido !== 'equipo desconocido') {
-              if (tname.includes(nombreSugerido)) bandoActualDelEquipo = 'T';
-              else if (ctname.includes(nombreSugerido)) bandoActualDelEquipo = 'CT';
-            }
-          }
-
           if (msg.msgtype === 6 && msg.round && msg.round.ticksList && msg.round.ticksList.length > 0) {
             roundCounter++;
 
+            // 🎯 EN LA RONDA 1, BUSCAMOS EL "CORE" DE JUGADORES
             if (roundCounter === 1) {
+              let bandoRealDelEquipo = null;
               
-              // 🔍 ESTRATEGIA 2 (Fallback): Buscar jugadores en el primer tick válido
-              if (!bandoActualDelEquipo && equipoObjetivo?.nombresReales) {
-                const primerTick = msg.round.ticksList[0];
-                if (primerTick.tickstate && primerTick.tickstate.playersList) {
-                  const nombresBuscar = equipoObjetivo.nombresReales.map(n => n.toLowerCase().trim());
-                  const jugadorEncontrado = primerTick.tickstate.playersList.find(p => {
-                    const name = p.name ? p.name.toLowerCase() : "";
-                    return nombresBuscar.some(target => target && name.includes(target));
-                  });
-                  if (jugadorEncontrado) bandoActualDelEquipo = jugadorEncontrado.team;
+              if (equipoObjetivo?.nombresReales) {
+                const nombresBuscar = equipoObjetivo.nombresReales.map(n => n.toLowerCase().trim());
+                
+                // Revisamos los ticks para encontrar coincidencias parciales (Core)
+                for (let i = 0; i < Math.min(msg.round.ticksList.length, 20); i++) {
+                  const tick = msg.round.ticksList[i];
+                  if (tick.tickstate && tick.tickstate.playersList) {
+                    
+                    // 🧠 CONTADOR DE COINCIDENCIAS (CORE)
+                    let matchesEncontrados = 0;
+                    let bandoDetectadoTemp = null;
+
+                    tick.tickstate.playersList.forEach(p => {
+                      const name = p.name ? p.name.toLowerCase() : "";
+                      const esDelEquipo = nombresBuscar.some(target => target && name.includes(target));
+                      if (esDelEquipo) {
+                        matchesEncontrados++;
+                        bandoDetectadoTemp = p.team;
+                      }
+                    });
+
+                    // Si encontramos al menos 3 jugadores de la plantilla, ¡ES NUESTRO EQUIPO!
+                    if (matchesEncontrados >= 3 && (bandoDetectadoTemp === 'T' || bandoDetectadoTemp === 'CT')) {
+                      bandoRealDelEquipo = bandoDetectadoTemp;
+                      console.log(`✅ [CORE DETECTADO] Encontrados ${matchesEncontrados} jugadores en ${demo.archivo.nombre}. Bando: ${bandoRealDelEquipo}`);
+                      break;
+                    }
+                  }
                 }
               }
 
-              // Si por algún motivo catastrófico fallan ambas, asume CT
-              if (!bandoActualDelEquipo) bandoActualDelEquipo = 'CT';
+              // Fallback por seguridad
+              if (!bandoRealDelEquipo) bandoRealDelEquipo = 'CT';
 
-              const bandoFiltradoNormal = bandoBuscado === 'TT' ? 'T' : 'CT';
-              
-              // 🧠 LÓGICA DE CAMBIO DE LADO (CS2 = MR12)
-              if (bandoActualDelEquipo === bandoFiltradoNormal) {
-                targetRoundNumber = 1; // Le tocaba ese bando en la Primera Mitad
+              const bandoRequerido = bandoBuscado === 'TT' ? 'T' : 'CT';
+
+              // 🧠 LÓGICA DE SELECCIÓN DE MITAD (MR12)
+              if (bandoRealDelEquipo === bandoRequerido) {
+                targetRoundNumber = 1; 
               } else {
-                targetRoundNumber = 13; // Le toca ese bando en la Segunda Mitad (Ronda 13 en CS2)
+                targetRoundNumber = 13; 
               }
 
-              console.log(`🎯 [WASM] ${demo.archivo.nombre}: El equipo está en ${bandoActualDelEquipo}. Buscamos ${bandoBuscado}. Extraemos Ronda ${targetRoundNumber}`);
+              console.log(`🎯 [WASM] ${demo.archivo.nombre} | Equipo en ${bandoRealDelEquipo}. Buscas ${bandoBuscado} -> Extrayendo Ronda ${targetRoundNumber}`);
             }
 
+            // 🚀 Extraemos la ronda exacta calculada
             if (roundCounter === targetRoundNumber) {
               clearTimeout(timeout);
               worker.terminate(); 
