@@ -31,6 +31,28 @@ export function PlayerApp() {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // 🚨 NUEVOS ESTADOS PARA EL FILTRO DE JUGADAS
+  const [filtroBando, setFiltroBando] = useState("TT");
+  const [filtroCompra, setFiltroCompra] = useState("Pistol");
+  const opcionesCompra = ["Pistol", "Eco", "Forzado", "Anti", "Buy", "Primer buy"];
+
+  // 🚨 ESTADOS PARA EL BOTÓN APLICAR Y LA DEMO VIRTUAL
+  const [filtrosAplicados, setFiltrosAplicados] = useState(null);
+  const [mostrarDemoVirtual, setMostrarDemoVirtual] = useState(false);
+
+// 🚨 FUNCIÓN PARA APLICAR LOS FILTROS (En PlayerApp.jsx)
+  const handleAplicarFiltros = () => {
+    const filtrosActuales = { bando: filtroBando, compra: filtroCompra };
+    setFiltrosAplicados(filtrosActuales);
+    setMostrarDemoVirtual(true);
+    
+    // Disparamos un evento hacia fuera del iframe
+    window.parent.postMessage({ 
+      type: 'APLICAR_FILTROS', 
+      filtros: filtrosActuales 
+    }, '*');
+  };
+
   // 1. INICIALIZAR WORKER Y PLAYER
   useEffect(() => {
     if (!worker.current) {
@@ -65,14 +87,19 @@ export function PlayerApp() {
         const msg = proto.Message.deserializeBinary(e.data).toObject();
         loaderMessageBus.emit(msg);
 
-        // 🚨 LA SOLUCIÓN INYECTADA AQUÍ: 
-        // Cuando recibe el mapa (4) o termina de cargar (5), quitamos el Loading
+// 🚨 LA SOLUCIÓN INYECTADA AQUÍ: 
         if (msg.msgtype === 4 || msg.msgtype === 5) {
           clearTimeout(window.hangTimeout);
           window.hangTimeout = null;
-          // Forzamos a que el sistema sepa que ya puede mostrar el mapa
-          setIsPlaying(true);
+          
+          // 🔥 CAMBIO AQUÍ: Arranca pausado
+          setIsPlaying(false); 
           setHasPlayed(true);
+
+          // Si tienes acceso al objeto player, fuérzalo a pausar
+          if (player.current && typeof player.current.pause === 'function') {
+             player.current.pause();
+          }
         }
       }
     };
@@ -117,118 +144,86 @@ export function PlayerApp() {
     };
   }, []);
 
-  // 2. LÓGICA DE CARGA DE DEMO
+// 2. LÓGICA DE CARGA DE DEMO
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const isVirtual = params.get('virtual') === 'true';
+
+    // 🚨 NUEVA LÓGICA: MODO PLAYLIST VIRTUAL
+    if (isVirtual) {
+      setLoadingMessage(["Conectando con el motor de Playlist..."]);
+      
+const handleVirtualData = (event) => {
+        if (event.data && event.data.type === 'LOAD_VIRTUAL_DEMO') {
+          setLoadingMessage(["Armando compilado de jugadas..."]);
+          
+          const mapaCrudo = event.data.map || 'ancient';
+          const mapaNormalizado = mapaCrudo.startsWith('de_') ? mapaCrudo : `de_${mapaCrudo}`;
+
+          // 1. Inyectamos la cabecera
+          loaderMessageBus.emit({ 
+            msgtype: 4, 
+            init: { mapname: mapaNormalizado, tname: "FILTRADOS TT", ctname: "FILTRADOS CT" } 
+          });
+
+// 2. Inyectamos cada ronda extraída RENUMERADA
+          event.data.rounds.forEach((ronda, index) => {
+            const nuevoNumero = index + 1;
+            
+            // 🚨 FORZAMOS EL NÚMERO EN TODAS PARTES PARA QUE REACT NO SE ROMPA
+            ronda.round = nuevoNumero;
+            if (ronda.teamstate) {
+              ronda.teamstate.round = nuevoNumero;
+            }
+
+            loaderMessageBus.emit({ msgtype: 6, round: ronda });
+          });
+
+          // 3. Le decimos al reproductor que ya "terminó de cargar"
+          loaderMessageBus.emit({ msgtype: 5 });
+          
+          // 4. Arrancamos pausados listos para ver
+          setIsPlaying(false);
+          setHasPlayed(true);
+        }
+      };
+
+      window.addEventListener('message', handleVirtualData);
+      return () => window.removeEventListener('message', handleVirtualData);
+    }
+
+    // --- LÓGICA ORIGINAL PARA DEMOS NORMALES ---
+    if (!isWasmLoaded) return;
     console.log("isWasmLoaded", isWasmLoaded);
 
     const startWatchdog = () => {
       if (window.hangTimeout) clearTimeout(window.hangTimeout);
       window.hangTimeout = setTimeout(() => {
         setIsError(true);
-        setLoadingMessage([
-          "⚠️ Error Crítico: La demo tiene un formato incompatible.",
-          "El analizador no pudo procesarla."
-        ]);
+        setLoadingMessage(["⚠️ Error Crítico: La demo tiene un formato incompatible."]);
         if (worker.current) worker.current.terminate();
       }, 60000);
     };
 
-    // Caso A: Demo cargada localmente (drag & drop)
-    if (isWasmLoaded && demoData.demoData) {
-      console.log("Posting local demo data to worker.");
+    if (demoData.demoData) {
       startWatchdog();
       worker.current.postMessage(demoData.demoData);
-    }
-    // Caso B y C: Demo desde URL
-    else if (isWasmLoaded) {
-      // ✅ Parseamos manualmente porque preact-iso falla dentro de iframes en Electron
-      const params = new URLSearchParams(window.location.search);
+    } else {
       const rawDemourl = params.get('demourl');
-
-      if (!rawDemourl) return; // No hay demo que cargar
-
+      if (!rawDemourl) return;
       const demoUrl = decodeURIComponent(rawDemourl);
-      console.log("demoUrl detectada:", demoUrl);
-
-      // Caso B: Ruta local de Electron (file:///)
+      
       if (demoUrl.startsWith('file:///')) {
-        console.log("Leyendo demo desde disco (Electron):", demoUrl);
         setLoadingMessage(["Leyendo demo desde disco..."]);
-
         const electron = window.require('electron');
-        const ipcRenderer = electron.ipcRenderer;
-
-        ipcRenderer.invoke('read-demo-file', demoUrl).then((result) => {
+        electron.ipcRenderer.invoke('read-demo-file', demoUrl).then((result) => {
           if (!result.success) {
             setIsError(true);
-            setLoadingMessage(["Error al leer el archivo: " + result.error]);
+            setLoadingMessage(["Error al leer: " + result.error]);
             return;
           }
-
-          const dataArray = new Uint8Array(result.data);
-          const filename = demoUrl.substring(demoUrl.lastIndexOf('/') + 1);
-
-          console.log("Demo leída correctamente, enviando al worker...");
-          setLoadingMessage(["Procesando demo..."]);
           startWatchdog();
-          worker.current.postMessage({
-            filename: filename,
-            data: dataArray,
-          });
-        }).catch((err) => {
-          setIsError(true);
-          setLoadingMessage(["Error IPC: " + err.message]);
-        });
-      }
-      // Caso C: Demo desde URL HTTP (Cloudflare/Localhost)
-      else {
-        const filename = demoUrl.substring(demoUrl.lastIndexOf('/') + 1);
-        setLoadingMessage(["Verificando archivos locales..."]);
-
-        get(filename).then((cachedData) => {
-          if (cachedData) {
-            console.log("⚡ Demo encontrada en caché.");
-            setLoadingMessage(["Cargando desde disco local..."]);
-            startWatchdog();
-            worker.current.postMessage({ filename, data: cachedData });
-          } else {
-            console.log("☁️ Descargando desde origen...");
-            setIsDownloading(true);
-
-            axios.get(demoUrl, {
-              responseType: "arraybuffer",
-              onDownloadProgress: (progressEvent) => {
-                const totalSize = progressEvent.event.target.getResponseHeader("X-Demo-Length");
-                setDownloadProgress(totalSize ? (progressEvent.loaded / totalSize) * 100 : 0);
-                setLoadingMessage([`Descargando demo de la nube...`]);
-              },
-            })
-            .then((response) => {
-              setIsDownloading(false);
-              setDownloadProgress(0);
-              setLoadingMessage(["Guardando y procesando..."]);
-
-              let finalFilename = filename;
-              const contentDisposition = response.headers["content-disposition"];
-              if (contentDisposition) {
-                const match = contentDisposition.match(/filename="([^"]+)"/);
-                if (match) finalFilename = match[1];
-              }
-
-              const dataArray = new Uint8Array(response.data);
-              set(finalFilename, dataArray)
-                .then(() => console.log("💾 Demo guardada en caché."))
-                .catch(err => console.error("Error guardando caché:", err));
-
-              startWatchdog();
-              worker.current.postMessage({ filename: finalFilename, data: dataArray });
-            })
-            .catch((error) => {
-              setIsDownloading(false);
-              setIsError(true);
-              setLoadingMessage(["Error descargando demo: " + error.message]);
-            });
-          }
+          worker.current.postMessage({ filename: demoUrl.substring(demoUrl.lastIndexOf('/') + 1), data: new Uint8Array(result.data) });
         });
       }
     }
@@ -259,7 +254,56 @@ export function PlayerApp() {
       }}>
         ⬅ Menú Principal
       </a>
+      
+      {/* 🚨 NUEVA BARRA DE FILTROS REPLAY */}
+      <div style={{ 
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        backgroundColor: '#0a0a0a', padding: '12px 20px', borderBottom: '1px solid #222', 
+        gap: '20px', width: '100%', position: 'absolute', top: 0, zIndex: 9000
+      }}>
+        <h3 style={{ margin: 0, color: '#fff', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          🎯 FILTROS
+        </h3>
+        
+        {/* Filtro de Bando */}
+        <div style={{ display: 'flex', gap: '5px' }}>
+          <button onClick={() => setFiltroBando('TT')} style={btnBaseStyle(filtroBando === 'TT', '#ffb300')}>⚔️ TT</button>
+          <button onClick={() => setFiltroBando('CT')} style={btnBaseStyle(filtroBando === 'CT', '#00d2ff')}>🛡️ CT</button>
+        </div>
 
+        <div style={{ width: '1px', height: '20px', backgroundColor: '#333' }} />
+
+        {/* Filtro de Economía */}
+        <div style={{ display: 'flex', gap: '5px' }}>
+          {opcionesCompra.map(tipo => (
+            <button key={tipo} onClick={() => setFiltroCompra(tipo)} style={btnTipoStyle(filtroCompra === tipo)}>
+              {tipo.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        {/* 🚨 BOTÓN APLICAR */}
+        <div style={{ width: '1px', height: '20px', backgroundColor: '#333' }} />
+        
+        <button 
+          onClick={handleAplicarFiltros} 
+          style={btnAplicarStyle}
+        >
+          Aplicar
+        </button>
+      </div>
+
+      <div className="grid-container" style={{ paddingTop: '50px' }}> 
+        <div className="grid-item map">
+          <Map2d messageBus={playerMessageBus} />
+        </div>
+        <div className="grid-item infoPanel">
+          <InfoPanel messageBus={playerMessageBus} />
+        </div>
+      </div>
+      
+      {/* 📌 Nota: Tienes un segundo grid-container duplicado aquí en tu código original. 
+          Si no lo necesitas, puedes borrarlo. */}
       <div className="grid-container">
         <div className="grid-item map">
           <Map2d messageBus={playerMessageBus} />
@@ -293,4 +337,43 @@ export function PlayerApp() {
       )}
     </ErrorBoundary>
   );
+  
 }
+
+// 🚨 ESTILOS PARA LOS BOTONES DEL FILTRO
+const btnBaseStyle = (activo, colorFoco) => ({
+  backgroundColor: activo ? `${colorFoco}22` : 'transparent',
+  border: `1px solid ${activo ? colorFoco : '#333'}`,
+  color: activo ? colorFoco : '#888',
+  padding: '6px 12px',
+  borderRadius: '4px',
+  fontWeight: 'bold',
+  cursor: 'pointer',
+  fontSize: '0.8rem',
+  transition: 'all 0.2s ease',
+});
+
+const btnTipoStyle = (activo) => ({
+  backgroundColor: activo ? '#222' : 'transparent',
+  border: `1px solid ${activo ? '#fff' : '#333'}`,
+  color: activo ? '#fff' : '#888',
+  padding: '6px 12px',
+  borderRadius: '4px',
+  fontWeight: 'bold',
+  cursor: 'pointer',
+  fontSize: '0.8rem',
+  transition: 'all 0.2s ease',
+});
+
+// 🚨 ESTILO NUEVO PARA EL BOTÓN APLICAR
+const btnAplicarStyle = {
+  backgroundColor: '#1d4ed8', // Azul fuerte
+  border: '1px solid #2563eb',
+  color: '#fff',
+  padding: '6px 16px',
+  borderRadius: '4px',
+  fontWeight: 'bold',
+  cursor: 'pointer',
+  fontSize: '0.85rem',
+  transition: 'background-color 0.2s ease',
+};

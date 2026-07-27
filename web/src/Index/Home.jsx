@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
-import { DashboardScouting } from "../Scouting/DashboardScouting";import "./Home.css";
+import { DashboardScouting } from "../Scouting/DashboardScouting";
+import { ColeccionReplays } from "./ColeccionReplays";
+import "./Home.css";
 
 const electron = window.require ? window.require('electron') : null;
 const ipcRenderer = electron ? electron.ipcRenderer : null;
 
 export function Home() {
+  // 🚨 TODOS LOS USESTATE DEBEN ESTAR AQUÍ ADENTRO
   const [arbolDemos, setArbolDemos] = useState([]);
   const [menuAbierto, setMenuAbierto] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -14,6 +17,9 @@ export function Home() {
 
   const [pestanas, setPestanas] = useState([]);
   const [pestanaActiva, setPestanaActiva] = useState(null);
+
+  // 🚨 NUESTRO NUEVO ESTADO VA AQUÍ ADENTRO TAMBIÉN
+  const [equipoGlobal, setEquipoGlobal] = useState(null);
 
   const [modoApp, setModoApp] = useState('replay');
   const [demosSeleccionadas, setDemosSeleccionadas] = useState([]);
@@ -47,29 +53,39 @@ export function Home() {
     }
   };
 
-const toggleSeleccionDemo = (archivo, equipo, mapa) => {
+  const toggleSeleccionDemo = (archivo, equipo, mapa) => {
     const id = `${equipo}-${mapa}-${archivo.nombre}`;
     const estaSeleccionada = demosSeleccionadas.some(d => d.id === id);
 
     if (estaSeleccionada) {
       setDemosSeleccionadas(demosSeleccionadas.filter(d => d.id !== id));
     } else {
-      // 🚨 ELIMINADA LA RESTRICCIÓN DE CARPETA. 
-      // Ahora puedes seleccionar cualquier mezcla, el Dashboard se encargará de validar.
       setDemosSeleccionadas([...demosSeleccionadas, { id, archivo, equipo, mapa }]);
     }
   };
 
   const generarReporte = () => {
-    const idReporte = `reporte-${Date.now()}`;
-    const nuevaPestana = {
-      id: idReporte,
+    const timestamp = Date.now();
+    const idDashboard = `reporte-${timestamp}`;
+    const idColeccion = `coleccion-${timestamp}`;
+
+    const nuevaPestanaDashboard = {
+      id: idDashboard,
       nombre: `📊 Reporte (${demosSeleccionadas.length} Demos)`,
       tipo: 'dashboard',
       demos: demosSeleccionadas
     };
-    setPestanas([...pestanas, nuevaPestana]);
-    setPestanaActiva(idReporte);
+
+    const nuevaPestanaColeccion = {
+      id: idColeccion,
+      nombre: `📺 Replays (${demosSeleccionadas.length})`,
+      tipo: 'coleccion',
+      demos: demosSeleccionadas
+    };
+
+    // 🧹 Limpieza: Solo abrimos Colección (Replays) y Dashboard (Reporte)
+    setPestanas([...pestanas, nuevaPestanaColeccion, nuevaPestanaDashboard]);
+    setPestanaActiva(idDashboard);
   };
 
   return (
@@ -195,11 +211,16 @@ const toggleSeleccionDemo = (archivo, equipo, mapa) => {
                 style={{ 
                   padding: '12px 20px', cursor: 'pointer', borderRight: '1px solid #222',
                   backgroundColor: pestanaActiva === p.id ? '#1e1e1e' : 'transparent',
-                  borderBottom: pestanaActiva === p.id ? `2px solid ${p.tipo === 'dashboard' ? '#ffb300' : '#00d2ff'}` : '2px solid transparent',
+                  // 🧹 Limpieza: Se quitaron los colores condicionales de la pestaña Jugadas
+                  borderBottom: pestanaActiva === p.id 
+                    ? `2px solid ${p.tipo === 'dashboard' ? '#ffb300' : '#00d2ff'}` 
+                    : '2px solid transparent',
                   display: 'flex', alignItems: 'center', gap: '15px', fontSize: '0.9rem'
                 }}
               >
-                <span style={{ color: p.tipo === 'dashboard' ? '#ffb300' : '#fff' }}>{p.nombre}</span>
+                <span style={{ color: p.tipo === 'dashboard' ? '#ffb300' : '#fff' }}>
+                  {p.nombre}
+                </span>
                 <button 
                   onClick={(e) => cerrarPestana(e, p.id)}
                   style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.2rem' }}
@@ -218,13 +239,25 @@ const toggleSeleccionDemo = (archivo, equipo, mapa) => {
             </div>
           ) : (
             pestanas.map(p => {
-              if (p.tipo === 'dashboard') {
+if (p.tipo === 'dashboard') {
                 return (
                   <div key={p.id} style={{ display: pestanaActiva === p.id ? 'block' : 'none', height: '100%' }}>
-                    <DashboardScouting demos={p.demos} />
+                    {/* 🚨 Le pasamos la función para que nos avise cuando elijas equipo */}
+                    <DashboardScouting demos={p.demos} onEquipoSeleccionado={setEquipoGlobal} />
                   </div>
                 )
               }
+
+              if (p.tipo === 'coleccion') {
+                return (
+                  <div key={p.id} style={{ display: pestanaActiva === p.id ? 'block' : 'none', height: '100%' }}>
+                    {/* 🚨 Le enviamos el equipo que elegiste a la colección */}
+                    <ColeccionReplays demos={p.demos} equipoGlobal={equipoGlobal} />
+                  </div>
+                )
+              }
+
+              // 🧹 Limpieza: Se quitó el bloque de renderizado de la pestaña Jugadas
 
               const baseUrl = window.location.href.split('?')[0];
               const iframeSrc = `${baseUrl}?player=true&demourl=${encodeURIComponent(p.url)}`;
