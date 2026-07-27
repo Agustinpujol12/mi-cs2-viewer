@@ -262,7 +262,7 @@ return (
                       {datosCruzados.length > 0 ? (
                         
                         // 🚨 AQUÍ REEMPLAZAMOS MAPACONSOLIDADO POR EL IFRAME VIRTUAL
-                        <iframe
+                          <iframe
                           title="VirtualPlaylist"
                           src={`${baseUrl}?player=true&virtual=true`}
                           onLoad={(e) => {
@@ -270,7 +270,8 @@ return (
                             e.target.contentWindow.postMessage({
                               type: 'LOAD_VIRTUAL_DEMO',
                               rounds: datosCruzados,
-                              map: demos.length > 0 ? demos[0].mapa : 'ancient'
+                              map: demos.length > 0 ? demos[0].mapa : 'ancient',
+                              filtros: filtrosActivos // 🚨 AGREGAMOS ESTA LÍNEA CLAVE
                             }, '*');
                           }}
                           style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}

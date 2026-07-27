@@ -31,9 +31,14 @@ export function PlayerApp() {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // 🚨 LEEMOS LA URL PARA SABER QUÉ FILTROS QUEDARON ACTIVOS
+  const paramUrl = new URLSearchParams(window.location.search);
+  const bandoGuardado = paramUrl.get('bando') || "TT";
+  const compraGuardada = paramUrl.get('compra') || "Pistol";
+
   // 🚨 NUEVOS ESTADOS PARA EL FILTRO DE JUGADAS
-  const [filtroBando, setFiltroBando] = useState("TT");
-  const [filtroCompra, setFiltroCompra] = useState("Pistol");
+  const [filtroBando, setFiltroBando] = useState(bandoGuardado);
+  const [filtroCompra, setFiltroCompra] = useState(compraGuardada);
   const opcionesCompra = ["Pistol", "Eco", "Forzado", "Anti", "Buy", "Primer buy"];
 
   // 🚨 ESTADOS PARA EL BOTÓN APLICAR Y LA DEMO VIRTUAL
@@ -157,8 +162,14 @@ const handleVirtualData = (event) => {
         if (event.data && event.data.type === 'LOAD_VIRTUAL_DEMO') {
           setLoadingMessage(["Armando compilado de jugadas..."]);
           
+          // 🚨 FORZAR LA ACTUALIZACIÓN VISUAL DE LOS BOTONES
+          if (event.data.filtros) {
+            setFiltroBando(event.data.filtros.bando);
+            setFiltroCompra(event.data.filtros.compra);
+          }
+
           const mapaCrudo = event.data.map || 'ancient';
-          const mapaNormalizado = mapaCrudo.startsWith('de_') ? mapaCrudo : `de_${mapaCrudo}`;
+          const mapaNormalizado = mapaCrudo.startsWith('de_') ? mapaCrudo : `de_${mapaCrudo}`
 
           // 1. Inyectamos la cabecera
           loaderMessageBus.emit({ 

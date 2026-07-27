@@ -64,7 +64,7 @@ export function Home() {
     }
   };
 
-  const generarReporte = () => {
+const generarReporte = () => {
     const timestamp = Date.now();
     const idDashboard = `reporte-${timestamp}`;
     const idColeccion = `coleccion-${timestamp}`;
@@ -83,8 +83,14 @@ export function Home() {
       demos: demosSeleccionadas
     };
 
-    // 🧹 Limpieza: Solo abrimos Colección (Replays) y Dashboard (Reporte)
-    setPestanas([...pestanas, nuevaPestanaColeccion, nuevaPestanaDashboard]);
+    // 🚨 EL SECRETO: Limpiamos la mesa antes de servir el nuevo reporte
+    // Esto borra cualquier pestaña anterior de Reporte o Replays, conservando solo las demos individuales (2d)
+    const pestanasSinReportesViejos = pestanas.filter(p => p.tipo !== 'dashboard' && p.tipo !== 'coleccion');
+
+    // Agregamos las nuevas pestañas al arreglo ya limpio
+    setPestanas([...pestanasSinReportesViejos, nuevaPestanaColeccion, nuevaPestanaDashboard]);
+    
+    // Activamos la pestaña del nuevo reporte
     setPestanaActiva(idDashboard);
   };
 
