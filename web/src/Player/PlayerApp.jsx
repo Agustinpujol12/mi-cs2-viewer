@@ -11,7 +11,7 @@ import Map2d from "./map/Map2d.jsx";
 import InfoPanel from "./panel/InfoPanel.jsx";
 import "./protos/Message_pb.js";
 import DemoContext from "../context.js";
-import { MSG_PLAY_CHANGE } from "./constants.js";
+import { MSG_PLAY_CHANGE, MSG_PLAY_TOGGLE } from "./constants.js";
 
 export function PlayerApp() {
   const location = useLocation();
@@ -58,7 +58,7 @@ export function PlayerApp() {
     }, '*');
   };
 
-  // 1. INICIALIZAR WORKER Y PLAYER
+// 1. INICIALIZAR WORKER Y PLAYER
   useEffect(() => {
     if (!worker.current) {
       worker.current = new Worker("worker.js");
@@ -69,6 +69,59 @@ export function PlayerApp() {
       player.current = new Player(playerMessageBus, loaderMessageBus);
       console.log("Player created.");
     }
+
+// ⌨️ ESCUCHADOR GLOBAL DE TECLADO (Espacio, K, Flecha Derecha y Flecha Izquierda)
+    const handleGlobalKeyDown = (e) => {
+      // 1. BARRA ESPACIADORA: Play / Pause
+      if (e.code === "Space") {
+        e.preventDefault(); 
+        playerMessageBus.emit({
+          msgtype: MSG_PLAY_TOGGLE,
+        });
+      }
+
+      // 2. LETRA K o FLECHA DERECHA: Siguiente ronda
+      if (e.key === "k" || e.key === "K" || e.code === "ArrowRight") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        
+        const activeRoundBtn = document.querySelector(".round-btn.active");
+        if (activeRoundBtn) {
+          let nextBtn = activeRoundBtn.nextElementSibling;
+          
+          if (nextBtn && nextBtn.classList.contains("round-divider")) {
+            nextBtn = nextBtn.nextElementSibling;
+          }
+          
+          if (nextBtn && nextBtn.classList.contains("round-btn")) {
+            nextBtn.click();
+          }
+        }
+      }
+
+      // 3. FLECHA IZQUIERDA: Ronda anterior
+      if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        
+        const activeRoundBtn = document.querySelector(".round-btn.active");
+        if (activeRoundBtn) {
+          let prevBtn = activeRoundBtn.previousElementSibling;
+          
+          // Si nos topamos con el divisor de MR12 retrocediendo, lo saltamos
+          if (prevBtn && prevBtn.classList.contains("round-divider")) {
+            prevBtn = prevBtn.previousElementSibling;
+          }
+          
+          // Si encontramos el botón anterior válido, hacemos clic
+          if (prevBtn && prevBtn.classList.contains("round-btn")) {
+            prevBtn.click();
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
 
     worker.current.onmessage = (e) => {
       if (window.hangTimeout) {
@@ -130,8 +183,10 @@ export function PlayerApp() {
         setLoadingMessage(["Loading..."]);
       }
     });
+return () => {
+      // Limpiamos el evento de teclado global
+      window.removeEventListener("keydown", handleGlobalKeyDown);
 
-    return () => {
       if (worker.current) {
         worker.current.terminate();
         console.log("Worker terminated.");

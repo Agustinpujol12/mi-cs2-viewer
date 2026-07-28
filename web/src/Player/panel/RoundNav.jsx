@@ -98,18 +98,6 @@ class RoundNav extends Component {
         e.preventDefault(); 
         this.messageBus.emit({ msgtype: MSG_PLAY_TOGGLE });
     }
-
-    if (e.key === "k" || e.key === "K") {
-        const { currentRound, validIds } = this.state;
-        const currentIndex = validIds.indexOf(currentRound);
-        
-        if (currentIndex !== -1 && currentIndex < validIds.length - 1) {
-            this.messageBus.emit({ 
-                msgtype: MSG_PLAY, 
-                round: validIds[currentIndex + 1] 
-            });
-        }
-    }
   }
 
   render() {
