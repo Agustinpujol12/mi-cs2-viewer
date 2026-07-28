@@ -6,69 +6,107 @@ import "./RoundNav.css";
 class RoundNav extends Component {
   constructor(props) {
     super(props);
-    // Agregamos currentRound y maxRounds al estado para la lógica de la "K"
-    this.state = { rounds: [], currentRound: 0, maxRounds: 0 };
+    this.state = { rounds: [], currentRound: 0, maxRounds: 0, validIds: [] };
     this.messageBus = props.messageBus;
     
+    // 🔒 Candado para el auto-salto
+    this.hasAutoJumped = false; 
+    
     this.messageBus.listen([MSG_INIT_ROUNDS], (msg) => {
-      let roundsElements = [];
+      const validRounds = msg.rounds.filter(r => r.roundno > 0);
+      if (validRounds.length === 0) return;
+
+      let startIndex = 0;
       
-      msg.rounds.forEach((r) => {
+      // 🧠 EL CEREBRO DETECTOR DE PATRONES
+      const idx2 = validRounds.findIndex(r => r.roundno === 2);
+
+      if (idx2 > 1) {
+        // PATRÓN GAMERSCLUB
+        startIndex = idx2;
+      } else if (idx2 === 1) {
+        // PATRÓN HLTV OFICIAL
+        startIndex = 0;
+      } else if (idx2 === -1 && validRounds.length > 1) {
+        // Mientras carga, mostramos la última encontrada
+        startIndex = validRounds.length - 1;
+      }
+
+      // ✂️ Cortamos toda la basura previa 
+      const rondasLimpias = validRounds.slice(startIndex);
+      
+      let roundsElements = [];
+      const validIds = [];
+      
+      rondasLimpias.forEach((r, index) => {
         const winnerClass = (r.winner === 2 || r.winner === "T") ? "T" : "CT";
+        const numeroVisual = index + 1; 
         
+        validIds.push(r.roundno); 
+
         roundsElements.push(
           <Round
-            key={`round${r.roundno}`}
+            key={`round_${r.roundno}_${index}`}
             winner={winnerClass} 
             roundNo={r.roundno}
+            visualNo={numeroVisual} 
             messageBus={this.messageBus}
           />
         );
 
-        if (r.roundno === 12) {
-          roundsElements.push(<div key="divider" className="round-divider"></div>);
+        if (numeroVisual === 12) {
+          roundsElements.push(<div key={`divider_${index}`} className="round-divider"></div>);
         }
       });
       
+      // 🚀 ACTUALIZAMOS ESTADO
       this.setState({ 
         rounds: roundsElements,
-        maxRounds: msg.rounds.length // Guardamos el total
+        maxRounds: rondasLimpias.length, 
+        validIds: validIds
+      }, () => {
+        // 🛡️ REGLA DEL CANDADO INTELIGENTE:
+        // Solo saltamos si NO lo hemos hecho antes Y si ya estamos 100% seguros 
+        // de que encontramos el inicio real (es decir, el motor ya leyó la ronda 2: idx2 !== -1)
+        if (!this.hasAutoJumped && idx2 !== -1 && validIds.length > 0) {
+          this.hasAutoJumped = true; // Cerramos el candado para el resto de la partida
+          this.messageBus.emit({ 
+            msgtype: MSG_PLAY, 
+            round: validIds[0] // Al estar seguros, validIds[0] es matemáticamente la Pistol
+          });
+        }
       });
     });
 
-    // Escuchamos en qué ronda estamos
     this.messageBus.listen([MSG_PLAY_ROUND_UPDATE], (msg) => {
         this.setState({ currentRound: msg.round });
     });
 
-    // Bindeamos la función para que 'this' funcione dentro
     this.handleKeyDown = this.handleKeyDown.bind(this);
   }
 
-  // ✅ ACTIVAR ESCUCHA DE TECLADO
   componentDidMount() {
     document.addEventListener("keydown", this.handleKeyDown);
   }
 
-  // 🗑️ LIMPIAR ESCUCHA AL SALIR (IMPORTANTE PARA NO DUPLICAR EVENTOS)
   componentWillUnmount() {
     document.removeEventListener("keydown", this.handleKeyDown);
   }
 
   handleKeyDown(e) {
-    // ⏯️ ESPACIO: Play / Pause
     if (e.code === "Space") {
-        e.preventDefault(); // Evita que la página baje (scroll)
+        e.preventDefault(); 
         this.messageBus.emit({ msgtype: MSG_PLAY_TOGGLE });
     }
 
-    // ⏭️ LETRA K: Siguiente Ronda
     if (e.key === "k" || e.key === "K") {
-        // Solo avanza si no es la última ronda
-        if (this.state.currentRound < this.state.maxRounds) {
+        const { currentRound, validIds } = this.state;
+        const currentIndex = validIds.indexOf(currentRound);
+        
+        if (currentIndex !== -1 && currentIndex < validIds.length - 1) {
             this.messageBus.emit({ 
                 msgtype: MSG_PLAY, 
-                round: this.state.currentRound + 1 
+                round: validIds[currentIndex + 1] 
             });
         }
     }
@@ -94,13 +132,13 @@ class Round extends Component {
     });
   }
 
-  playRound(round) {
+  playRound(roundNo) {
     this.setState({ active: true });
-    this.messageBus.emit({ msgtype: MSG_PLAY, round: round });
+    this.messageBus.emit({ msgtype: MSG_PLAY, round: roundNo });
   }
 
   render() {
-    const { winner, roundNo } = this.props;
+    const { winner, roundNo, visualNo } = this.props;
     const { active } = this.state;
 
     return (
@@ -108,7 +146,7 @@ class Round extends Component {
         className={`round-btn ${winner} ${active ? "active" : ""}`}
         onClick={() => this.playRound(roundNo)}
       >
-        {roundNo}
+        {visualNo}
       </button>
     );
   }
