@@ -13,6 +13,7 @@ import deAnubis from "../../assets/overviews/de_anubis.png";
 import deDust2 from "../../assets/overviews/de_dust2.png";
 import deInferno from "../../assets/overviews/de_inferno.png";
 import deMirage from "../../assets/overviews/de_mirage.png";
+import deCache from "../../assets/overviews/de_cache.png";
 import deNuke from "../../assets/overviews/de_nuke.png";
 import deNukeLower from "../../assets/overviews/de_nuke_lower.png";
 import deOverpass from "../../assets/overviews/de_overpass.png";
@@ -29,6 +30,7 @@ const mapOverviews = {
   "de_dust2": deDust2,
   "de_inferno": deInferno,
   "de_mirage": deMirage,
+  "de_cache": deCache,
   "de_nuke": deNuke,
   "de_nuke_lower": deNukeLower,
   "de_overpass": deOverpass,
