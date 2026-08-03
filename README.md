@@ -1,6 +1,3 @@
-<p align="center">
-  <img src="docs/logo.png" alt="CS2 Viewer logo" width="160"/>
-</p>
 
 <h1 align="center">CS2 Local Demo Viewer</h1>
 
